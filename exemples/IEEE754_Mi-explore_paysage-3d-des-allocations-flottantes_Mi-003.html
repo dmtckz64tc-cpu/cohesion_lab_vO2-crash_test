@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paysage 3D — allocation des bits flottants</title>
+<style>
+  :root { font-family: system-ui, sans-serif; background:#0b1020; color:#e8ecf8; }
+  body { margin:0; padding:12px; }
+  h1 { font-size:18px; margin:4px 0 2px; }
+  .sub { font-size:12px; color:#93a0c4; margin-bottom:8px; }
+  #panel { display:flex; flex-wrap:wrap; gap:18px; background:#141b33; border:1px solid #2a3358; border-radius:10px; padding:10px 14px; margin-bottom:8px; font-size:13px; }
+  .ctl { display:flex; flex-direction:column; min-width:170px; }
+  .ctl label { font-size:11px; color:#93a0c4; }
+  .ctl b { color:#ffd166; }
+  input[type=range]{ width:170px; }
+  #wrap { position:relative; }
+  canvas { display:block; width:100%; height:66vh; background:#0b1020; border:1px solid #2a3358; border-radius:10px; }
+  #tip { position:absolute; pointer-events:none; background:#0e1630ee; border:1px solid #3d4a86; padding:8px 10px; border-radius:8px; font-size:12px; display:none; white-space:pre; box-shadow:0 4px 16px #0008; }
+  details { background:#141b33; border:1px solid #2a3358; border-radius:10px; padding:8px 14px; margin-top:8px; font-size:13px; line-height:1.55; }
+  summary { cursor:pointer; font-weight:600; }
+  code { background:#0e1630; padding:1px 5px; border-radius:4px; }
+  .legend { font-size:12px; color:#93a0c4; }
+</style>
+</head>
+<body>
+<h1>🏔️ Paysage 3D des allocations flottantes</h1>
+<div class="sub">x → nBit (total) · z → w (bits d'exposant) · hauteur/couleur = qualité d'encodage Q · ligne dorée = crête d'optimum · ligne cyan = balayage du curseur lié · + = formats historiques</div>
+
+<div id="panel">
+  <div class="ctl">
+    <label>nBit — curseur de colonne (3 → 132) : <b id="vNbit">32</b></label>
+    <input id="sNbit" type="range" min="3" max="132" value="32" />
+  </div>
+  <div class="ctl">
+    <label>nCat — nombre de catégories (2 → 5) : <b id="vNcat">3</b></label>
+    <input id="sNcat" type="range" min="2" max="5" value="3" />
+    <span class="legend" id="catNames">signe + exposant + mantisse</span>
+  </div>
+  <div class="ctl">
+    <label>n_sign — bits de signe (0 → 4) : <b id="vNsign">1</b></label>
+    <input id="sNsign" type="range" min="0" max="4" value="1" />
+  </div>
+  <div class="ctl">
+    <label>Curseur lié r — part exposant/mantisse : <b id="vRatio">0.25</b></label>
+    <input id="sRatio" type="range" min="0" max="100" value="25" />
+    <span class="legend">n_exp = round(r × bits restants), mantisse = le reste</span>
+  </div>
+</div>
+
+<div id="wrap">
+  <canvas id="cv" width="1200" height="700"></canvas>
+  <div id="tip"></div>
+</div>
+
+<details>
+  <summary>📖 Notice d'utilisation et de paramétrage</summary>
+  <h3>Lire le paysage</h3>
+  <ul>
+    <li>Chaque <b>cellule</b> est un format hypothétique : (nBit, w) ⇒ mantisse = nBit − n_sign − surcoût − w.</li>
+    <li><b>Hauteur et couleur</b> = qualité d'encodage <code>Q = moyenne harmonique(portée, précision)</code>, en échelle log. Q équilibre « couvrir beaucoup de décades » (exposant) et « être précis » (mantisse).</li>
+    <li><b>Ligne dorée</b> : la crête d'optimum — pour chaque nBit, le w qui maximise Q. C'est la ligne que les formats historiques longent.</li>
+    <li><b>Ligne cyan</b> : votre curseur lié r. Faites-la glisser : si elle quitte la crête, vous êtes sous-optimal.</li>
+    <li><b>+ blancs</b> : bfloat16, half, float32, float64, x87-80, float128.</li>
+    <li>Survol d'une cellule : nBit, w, mantisse, portée (en puissances de 10), précision (chiffres décimaux), Q.</li>
+  </ul>
+  <h3>Paramétrer</h3>
+  <ul>
+    <li><b>nCat = 2</b> : virgule fixe (signe + mantisse, pas d'exposant) → paysage plat : aucune découpe possible, la précision pousse linéairement mais la portée reste minuscule. La leçon visuelle : sans exposant, pas de compromis, pas d'optimum — juste un mur.</li>
+    <li><b>nCat = 3</b> : le monde IEEE 754 (signe + exposant + mantisse) → le paysage classique avec sa crête.</li>
+    <li><b>nCat = 4 ou 5</b> : catégories supplémentaires (mantisse étendue, bits de garde, tag de format…). Modèle pédagogique : chaque catégorie en plus coûte <b>1 bit de balise</b> (surcoût). Effet visible : le paysage « recule » d'un bit, la crête se décale, les petits formats deviennent impossibles.</li>
+    <li><b>n_sign = 0</b> : nombres uniquement positifs (un entier non signé de mantisse, gain d'un bit de précision). <b>n_sign = 2+</b> : gaspillage volontaire (signe + payload NaN, par ex.).</li>
+    <li><b>Caméra</b> : glisser = orbiter · molette = zoomer · double-clic = vue de départ.</li>
+  </ul>
+  <h3>Visualiser en local sur votre PC</h3>
+  <p>Ce fichier est du pur HTML + JavaScript : <b>aucune installation, aucun serveur, pas besoin de Node ni de React</b>.</p>
+  <ul>
+    <li>Le plus simple : téléchargez le fichier <code>.html</code> depuis le canvas, puis <b>double-cliquez dessus → il s'ouvre dans Firefox</b> (ou Chrome). C'est tout.</li>
+    <li>Via VSCode : ouvrez le dossier du fichier, clic droit sur le fichier → « Reveal in File Explorer », ou installez l'extension <b>Live Server</b> → clic droit sur le fichier → « Open with Live Server » (utile pour modifier le code et voir le résultat se rafraîchir).</li>
+    <li>Le rendu 3D est fait à la main (projection perspective sur un canvas 2D) : il fonctionne hors-ligne, sans bibliothèque externe.</li>
+  </ul>
+  <h3>Limites machine</h3>
+  <p>Toutes les métriques sont calculées en <b>logarithmes</b> (portée = (2^w−2)·log₁₀2, jamais la valeur absolue) : même avec w = 24 bits d'exposant (portée ~10⁷·²⁶⁰), aucun dépassement de float64 n'est possible dans le calcul lui-même.</p>
+</details>
+
+<script>
+"use strict";
+const LOG10_2 = Math.log10(2);
+const NB_MIN = 3, NB_MAX = 132, W_MAX = 24;
+
+const state = { nBit: 32, nCat: 3, nSign: 1, r: 0.25 };
+const cam = { yaw: -0.65, pitch: 0.52, dist: 150, cx: 0, cy: 0 };
+
+// ---------- modèle ----------
+function overhead(nCat){ return Math.max(0, nCat - 3); } // bits de balise pédagogiques
+
+function metrics(nBit, w, nCat, nSign){
+  if (nCat === 2) { // virgule fixe : signe + mantisse
+    const m = nBit - nSign;
+    if (m < 1) return null;
+    const d = m * LOG10_2;
+    return { m, w: 0, P: d, D: d, Q: d };
+  }
+  const m = nBit - nSign - overhead(nCat) - w;
+  if (m < 1 || w < 1) return null;
+  const P = (Math.pow(2, Math.min(w, 60)) - 2) * LOG10_2; // portée en décades (log)
+  const D = (m + 1) * LOG10_2;                             // chiffres décimaux de précision
+  const Q = (2 * P * D) / (P + D);                         // moyenne harmonique
+  return { m, w, P, D, Q };
+}
+
+// grille : G[nb - NB_MIN][w - 1] = metrics | null
+let G = [], ridge = [], scan = [], colNb = state.nBit;
+function rebuild(){
+  G = []; ridge = [];
+  for (let nb = NB_MIN; nb <= NB_MAX; nb++){
+    const row = [];
+    let best = null;
+    for (let w = 1; w <= W_MAX; w++){
+      const m = metrics(nb, w, state.nCat, state.nSign);
+      row.push(m);
+      if (m && (!best || m.Q > best.Q)) best = m;
+    }
+    G.push(row);
+    ridge.push(best); // {m,w,P,D,Q} à (nb, best.w)
+  }
+  // ligne de balayage du curseur lié
+  scan = [];
+  const free = nb => nb - state.nSign - overhead(state.nCat);
+  for (let nb = NB_MIN; nb <= NB_MAX; nb++){
+    if (state.nCat === 2) { const m = metrics(nb, 0, 2, state.nSign); if (m) scan.push({nb, w:0, m}); continue; }
+    let w = Math.round(state.r * free(nb));
+    w = Math.max(1, Math.min(W_MAX, w));
+    const mm = metrics(nb, w, state.nCat, state.nSign);
+    if (mm) scan.push({ nb, w, m: mm });
+  }
+}
+
+// formats historiques (nBit, w) — nCat=3, nSign=1
+const HISTO = [
+  { nb: 16, w: 8,  name: "bfloat16" },
+  { nb: 16, w: 5,  name: "half" },
+  { nb: 32, w: 8,  name: "float32" },
+  { nb: 64, w: 11, name: "float64" },
+  { nb: 80, w: 15, name: "x87-80" },
+  { nb: 128, w: 15, name: "float128" },
+];
+
+// ---------- rendu 3D maison ----------
+const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+const tip = document.getElementById("tip");
+let hover = null;
+let lastQuads = []; // cellules projetées de la dernière frame (pour le survol)
+
+const SX = nb => (nb - NB_MIN) - (NB_MAX - NB_MIN) / 2;  // monde x
+const SZ = w => (w - 1) - 11.5;                 // monde z
+function SY(Q){ return Math.log10(1 + Q) * 6; } // hauteur (échelle log)
+
+function project(x, y, z){
+  const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
+  const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  let X = x * cy - z * sy, Z = x * sy + z * cy;
+  let Y = y * cp - Z * sp; Z = y * sp + Z * cp;
+  Z += cam.dist;
+  const f = (cv.height * 1.35) / Math.max(Z, 0.1);
+  return { sx: cv.width / 2 + X * f, sy: cv.height / 2 - Y * f, z: Z };
+}
+
+function colorFor(Q, Qmax){
+  const t = Math.min(1, Math.log10(1 + Q) / Math.log10(1 + Qmax));
+  // bleu profond -> turquoise -> jaune -> rouge
+  const stops = [[13,27,84],[20,120,150],[120,180,60],[240,190,40],[240,60,50]];
+  const u = t * (stops.length - 1), i = Math.min(stops.length - 2, Math.floor(u)), v = u - i;
+  const c = stops[i].map((a, k) => Math.round(a + (stops[i + 1][k] - a) * v));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function render(){
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0, 0, W, H);
+  let Qmax = 1e-9;
+  for (const row of G) for (const c of row) if (c) Qmax = Math.max(Qmax, c.Q);
+
+  // sols de référence : grille discrète en dessous
+  ctx.strokeStyle = "#1a2447"; ctx.lineWidth = 1;
+  for (let nb = NB_MIN; nb <= NB_MAX; nb += 8){
+    const a = project(SX(nb), 0, SZ(1)), b = project(SX(nb), 0, SZ(W_MAX));
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+  }
+  for (let w = 1; w <= W_MAX; w += 4){
+    const a = project(SX(NB_MIN), 0, SZ(w)), b = project(SX(NB_MAX), 0, SZ(w));
+    ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+  }
+
+  // éléments triés en profondeur (algorithme du peintre)
+  const items = [];
+  const cell = (nb, w) => G[nb - NB_MIN] ? G[nb - NB_MIN][w - 1] : null;
+  const hAt = (nb, w) => { const c = cell(nb, w); return c ? SY(c.Q) : -1; };
+
+  const quads = [];
+  for (let nb = NB_MIN; nb < NB_MAX; nb++){
+    for (let w = 1; w < W_MAX; w++){
+      const c1 = cell(nb, w), c2 = cell(nb + 1, w), c3 = cell(nb, w + 1), c4 = cell(nb + 1, w + 1);
+      if (!c1 && !c2 && !c3 && !c4) continue;
+      const h = [hAt(nb,w), hAt(nb+1,w), hAt(nb+1,w+1), hAt(nb,w+1)];
+      if (h.every(v => v < 0)) continue;
+      const hh = v => v < 0 ? 0 : v;
+      const avgQ = ((c1?c1.Q:0)+(c2?c2.Q:0)+(c3?c3.Q:0)+(c4?c4.Q:0)) / ((c1?1:0)+(c2?1:0)+(c3?1:0)+(c4?1:0));
+      const nbTop = nb === state.nBit || nb + 1 === state.nBit; // colonne du curseur nBit
+      items.push({
+        depth: 0, draw(){
+          const p1 = project(SX(nb), hh(h[0]), SZ(w));
+          const p2 = project(SX(nb+1), hh(h[1]), SZ(w));
+          const p3 = project(SX(nb+1), hh(h[2]), SZ(w+1));
+          const p4 = project(SX(nb), hh(h[3]), SZ(w+1));
+          const mid = project(SX(nb)+0.5, 0, SZ(w)+0.5);
+          ctx.fillStyle = colorFor(avgQ, Qmax);
+          ctx.globalAlpha = nbTop ? 1 : 0.88;
+          ctx.beginPath(); ctx.moveTo(p1.sx,p1.sy); ctx.lineTo(p2.sx,p2.sy); ctx.lineTo(p3.sx,p3.sy); ctx.lineTo(p4.sx,p4.sy); ctx.closePath(); ctx.fill();
+          if (nbTop){ ctx.globalAlpha = 1; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.6; ctx.stroke(); }
+          ctx.globalAlpha = 1;
+          quads.push({ nb, w, sx: mid.sx, sy: mid.sy, Q: avgQ, h: Math.max(...h.map(hh)) });
+        }
+      });
+      const pm = project(SX(nb)+0.5, 0, SZ(w)+0.5);
+      items[items.length-1].depth = pm.z;
+    }
+  }
+
+  // crête d'optimum (or)
+  for (let nb = NB_MIN; nb < NB_MAX; nb++){
+    const r1 = ridge[nb - NB_MIN], r2 = ridge[nb + 1 - NB_MIN];
+    if (!r1 || !r2) continue;
+    const a = project(SX(nb), SY(r1.Q) + 0.5, SZ(r1.w));
+    const b = project(SX(nb+1), SY(r2.Q) + 0.5, SZ(r2.w));
+    items.push({ depth: (a.z + b.z) / 2 - 1, draw(){
+      ctx.strokeStyle = "#ffd166"; ctx.lineWidth = 3.2;
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    }});
+  }
+  // ligne de balayage (cyan)
+  for (let i = 0; i < scan.length - 1; i++){
+    const s1 = scan[i], s2 = scan[i + 1];
+    const a = project(SX(s1.nb), SY(s1.m.Q) + 0.7, SZ(s1.w));
+    const b = project(SX(s2.nb), SY(s2.m.Q) + 0.7, SZ(s2.w));
+    items.push({ depth: (a.z + b.z) / 2 - 2, draw(){
+      ctx.strokeStyle = "#4be3ff"; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke();
+    }});
+  }
+
+  items.sort((a, b) => b.depth - a.depth); // loin -> près
+  quads.length = 0;
+  for (const it of items) it.draw();
+  lastQuads = quads.slice();
+
+  // marqueurs historiques
+  for (const f of HISTO){
+    const c = cell(f.nb, f.w); if (!c) continue;
+    const p = project(SX(f.nb), SY(c.Q) + 2.4, SZ(f.w));
+    if (p.z <= 0) continue;
+    ctx.fillStyle = "#fff"; ctx.strokeStyle = "#0b1020";
+    ctx.beginPath(); ctx.arc(p.sx, p.sy, 5, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.font = "12px system-ui"; ctx.fillStyle = "#dfe6ff";
+    ctx.fillText(f.name, p.sx + 8, p.sy + 4);
+  }
+
+  // étiquettes d'axes
+  ctx.font = "12px system-ui"; ctx.fillStyle = "#93a0c4";
+  for (const nb of [8, 16, 32, 64, 128]){
+    const p = project(SX(nb), 0, SZ(1) - 1.5);
+    ctx.fillText("nBit=" + nb, p.sx - 16, p.sy);
+  }
+  for (const w of [4, 8, 12, 16, 20]){
+    const p = project(SX(NB_MAX) + 1.5, 0, SZ(w));
+    ctx.fillText("w=" + w, p.sx, p.sy + 4);
+  }
+
+  // info de survol
+  if (hover){
+    const c = cell(hover.nb, hover.w);
+    if (c){
+      tip.style.display = "block";
+      tip.style.left = (hover.sx + 14) + "px";
+      tip.style.top = (hover.sy + 14) + "px";
+      tip.textContent =
+        `nBit = ${hover.nb}   w = ${c.w}\n` +
+        `mantisse = ${c.m} bits  (+1 implicite)\n` +
+        `portée ≈ 10^±${c.P < 1e6 ? c.P.toPrecision(3) : c.P.toExponential(2)}\n` +
+        `précision ≈ ${c.D.toFixed(2)} chiffres\n` +
+        `Q = ${c.Q.toFixed(1)}${state.nCat > 3 ? "\n(surcoût balises : " + overhead(state.nCat) + " bit)" : ""}`;
+    }
+  } else tip.style.display = "none";
+}
+
+// ---------- interactions ----------
+let drag = null;
+cv.addEventListener("mousedown", e => { drag = { x: e.clientX, y: e.clientY }; });
+window.addEventListener("mouseup", () => drag = null);
+window.addEventListener("mousemove", e => {
+  if (drag){
+    cam.yaw += (e.clientX - drag.x) * 0.008;
+    cam.pitch = Math.min(1.45, Math.max(0.06, cam.pitch + (e.clientY - drag.y) * 0.006));
+    drag = { x: e.clientX, y: e.clientY };
+  }
+});
+cv.addEventListener("mousemove", e => {
+  const r = cv.getBoundingClientRect();
+  const mx = (e.clientX - r.left) * (cv.width / r.width), my = (e.clientY - r.top) * (cv.height / r.height);
+  hover = null;
+  // retrouve la cellule : inverse-projection approchée en testant la dernière frame
+  let bestD = 16;
+  for (const q of lastQuads){
+    const d = Math.hypot(q.sx - mx, q.sy - my);
+    if (d < bestD){ bestD = d; hover = { nb: q.nb, w: q.w, sx: q.sx, sy: q.sy }; }
+  }
+  render();
+});
+cv.addEventListener("wheel", e => { e.preventDefault(); cam.dist = Math.min(220, Math.max(35, cam.dist + e.deltaY * 0.08)); render(); }, { passive: false });
+cv.addEventListener("mouseleave", () => { hover = null; render(); });
+cv.addEventListener("dblclick", () => { cam.yaw = -0.65; cam.pitch = 0.52; cam.dist = 150; render(); });
+
+const bind = (id, vid, fn) => document.getElementById(id).addEventListener("input", e => { fn(+e.target.value); document.getElementById(vid).textContent = e.target.value; rebuild(); render(); });
+bind("sNbit", "vNbit", v => state.nBit = v);
+bind("sNcat", "vNcat", v => {
+  state.nCat = v;
+  document.getElementById("catNames").textContent =
+    v === 2 ? "signe + mantisse (virgule fixe)" :
+    v === 3 ? "signe + exposant + mantisse" :
+    v === 4 ? "signe + exp + mantisse + extension (1 bit de balise)" :
+             "5 catégories (2 bits de balise)";
+});
+bind("sNsign", "vNsign", v => state.nSign = v);
+document.getElementById("sRatio").addEventListener("input", e => {
+  state.r = +e.target.value / 100;
+  document.getElementById("vRatio").textContent = state.r.toFixed(2);
+  rebuild(); render();
+});
+
+// boucle d'animation douce
+function loop(){ render(); requestAnimationFrame(loop); }
+rebuild(); loop();
+</script>
+</body>
+</html>
