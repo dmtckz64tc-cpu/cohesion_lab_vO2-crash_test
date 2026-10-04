@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>surPhiN'Phi — estampe & brouillard</title>
+<style>
+  :root{
+    --bg: #060403;
+    --bg2: #0d0905;
+    --line: #2a1f14;
+    --phos: #ffb84d;
+    --phos-dim: #7a5420;
+    --warn: #ff6b35;
+    --hot: #ff3d00;
+    --text: #f0e6d2;
+    --text-dim: #9c8866;
+    --red-seal: #c23a1e;
+    --red-seal-dim: #6b1f10;
+    --fog: rgba(240,230,210,0.04);
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background: radial-gradient(ellipse at 50% 40%, #1a1008 0%, var(--bg) 72%);
+    font-family: Georgia, "Iowan Old Style", serif;
+    color: var(--text);
+  }
+  #game{ position:absolute; inset:0; display:block; width:100%; height:100%; }
+
+  #hud{
+    position:absolute; top:14px; left:14px;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    color: var(--phos);
+    line-height: 1.7;
+    pointer-events:none;
+    text-shadow: 0 0 8px rgba(255,184,77,0.45);
+    z-index: 10;
+  }
+  #hud .dim{ color: var(--text-dim); }
+  #hud .lock{
+    color: var(--hot);
+    text-shadow: 0 0 12px rgba(255,61,0,0.7), 0 0 30px rgba(255,61,0,0.3);
+  }
+  #hud .near{
+    color: var(--warn);
+    text-shadow: 0 0 10px rgba(255,107,53,0.6);
+  }
+
+  #panel{
+    position:absolute; top:0; right:0; height:100%;
+    width: 310px;
+    background: linear-gradient(180deg, rgba(13,9,5,0.93), rgba(13,9,5,0.98));
+    border-left: 1px solid var(--line);
+    padding: 22px 20px 20px;
+    overflow-y:auto;
+    transition: transform 0.35s ease;
+    z-index: 20;
+  }
+  #panel.collapsed{ transform: translateX(100%); }
+
+  #panelToggle{
+    position:absolute; top:14px; right:14px; z-index:25;
+    background: var(--bg2); color: var(--phos);
+    border:1px solid var(--line); border-radius:2px;
+    font-family: "Courier New", monospace; font-size:11px;
+    padding: 6px 10px; cursor:pointer; letter-spacing:0.5px;
+  }
+  #panelToggle:hover{
+    border-color: var(--phos);
+    box-shadow: 0 0 12px rgba(255,184,77,0.25);
+  }
+
+  h1{ font-size: 15px; font-weight:400; letter-spacing:0.5px; margin: 0 0 2px; color:#f5ead5; }
+  .sub{ font-size:11px; color:var(--text-dim); margin:0 0 20px; font-family:"Courier New", monospace; }
+
+  .group{ margin-bottom: 18px; }
+  .group h2{
+    font-size:10px; text-transform:uppercase; letter-spacing:1.5px;
+    color: var(--text-dim); font-weight:400; margin:0 0 8px;
+    font-family:"Courier New", monospace;
+    border-bottom:1px solid var(--line); padding-bottom:6px;
+  }
+
+  .row{ margin-bottom:12px; }
+  .row label{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; color:var(--text); }
+  .row label span.val{ color:var(--phos); font-family:"Courier New", monospace; }
+  input[type=range]{ width:100%; height:3px; -webkit-appearance:none; background: var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:11px; height:11px; border-radius:50%;
+    background: var(--phos); cursor:pointer;
+    box-shadow: 0 0 8px rgba(255,184,77,0.7), 0 0 20px rgba(255,184,77,0.3);
+  }
+  input[type=range]::-moz-range-thumb{ width:11px; height:11px; border-radius:50%; border:none; background: var(--phos); cursor:pointer; }
+
+  .toggleRow{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin-bottom:10px; }
+  .toggleRow input[type=checkbox]{ width:16px; height:16px; accent-color: var(--phos); }
+
+  .presets{ display:flex; flex-direction:column; gap:8px; }
+  button.preset{
+    background: var(--bg2); color: var(--text);
+    border:1px solid var(--line); border-radius:3px;
+    padding:9px 10px; text-align:left; cursor:pointer;
+    font-family: Georgia, serif; font-size:12.5px;
+  }
+  button.preset:hover{
+    border-color: var(--phos-dim); color:#f5ead5;
+    box-shadow: inset 0 0 20px rgba(255,184,77,0.05);
+  }
+  button.preset .k{ display:block; font-family:"Courier New", monospace; font-size:10px; color:var(--phos); margin-bottom:2px; }
+
+  #note{ margin-top:20px; font-size:11.5px; line-height:1.5; color:var(--text-dim); border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<canvas id="trail" style="display:none;"></canvas>
+<canvas id="fog" style="display:none;"></canvas>
+<button id="panelToggle">réglages</button>
+
+<div id="hud">
+  ratio pics/tour : <b id="hRatio">–</b> · résonance la plus proche : <b id="hNearest">–</b><br>
+  écart à la résonance : <b id="hDelta">–</b><br>
+  cohérence (jauge partagée) : <b id="hCoherence">–</b><br>
+  vitesse de précession (repère co-tournant) : <b id="hPrec">–</b><br>
+  brouillard de guerre : <b id="hFog">–</b><br>
+  <span class="dim">flèches = pousser · panneau = réglages</span>
+</div>
+
+<div id="panel">
+  <h1>surPhiN'Phi</h1>
+  <p class="sub">estampe — brouillard de guerre, braise et résonance</p>
+
+  <div class="group">
+    <h2>Conditions de départ</h2>
+    <div class="presets">
+      <button class="preset" data-preset="triangle"><span class="k">essai triangle</span>départ proche du cœur, faible vitesse tangentielle</button>
+      <button class="preset" data-preset="loin"><span class="k">orbite lointaine</span>départ éloigné, vitesse tangentielle plus franche</button>
+      <button class="preset" data-preset="original"><span class="k">config d'origine</span>conditions du fichier game.js de départ</button>
+      <button class="preset" data-preset="decouverte"><span class="k">découverte</span>brouillard épais, centre inconnu, tout est à révéler</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Repère de rendu</h2>
+    <div class="toggleRow"><label for="coRotating">caméra co-tournante</label><input type="checkbox" id="coRotating" checked></div>
+    <div class="toggleRow"><label for="showTrail">rémanence phosphorescente</label><input type="checkbox" id="showTrail" checked></div>
+    <div class="toggleRow"><label for="showHalo">halo de cohérence</label><input type="checkbox" id="showHalo" checked></div>
+  </div>
+
+  <div class="group">
+    <h2>Cohérence</h2>
+    <div class="row"><label>vitesse de charge (repos) <span class="val" id="v_attackRate"></span></label><input type="range" id="attackRate" min="0.002" max="0.05" step="0.001"></div>
+    <div class="row"><label>coût de l'action (flèches) <span class="val" id="v_decayRate"></span></label><input type="range" id="decayRate" min="0.005" max="0.08" step="0.002"></div>
+    <div class="row"><label>rémanence (persistance) <span class="val" id="v_trailPersist"></span></label><input type="range" id="trailPersist" min="0.85" max="0.99" step="0.005"></div>
+  </div>
+
+  <div class="group">
+    <h2>Monde</h2>
+    <div class="row"><label>rayon du cœur <span class="val" id="v_coreRadius"></span></label><input type="range" id="coreRadius" min="20" max="140" step="1"></div>
+    <div class="row"><label>accélération centrale max <span class="val" id="v_maxAcceleration"></span></label><input type="range" id="maxAcceleration" min="0.04" max="0.4" step="0.005"></div>
+  </div>
+
+  <div class="group">
+    <h2>Joueur</h2>
+    <div class="row"><label>poussée (flèches) <span class="val" id="v_thrust"></span></label><input type="range" id="thrust" min="0.1" max="0.9" step="0.01"></div>
+  </div>
+
+  <div class="group">
+    <h2>Bille d'inertie</h2>
+    <div class="row"><label>inertie près du cœur <span class="val" id="v_inertiaMin"></span></label><input type="range" id="inertiaMin" min="0.6" max="0.99" step="0.005"></div>
+    <div class="row"><label>inertie loin du cœur <span class="val" id="v_inertiaMax"></span></label><input type="range" id="inertiaMax" min="0.96" max="0.999" step="0.001"></div>
+    <div class="row"><label>raideur du couplage <span class="val" id="v_couplingCap"></span></label><input type="range" id="couplingCap" min="0.02" max="0.22" step="0.005"></div>
+  </div>
+
+  <div id="note">
+    La cohérence est une jauge unique : elle monte doucement quand le système est laissé tranquille
+    près d'une résonance, et retombe dès qu'on pousse au clavier — le halo et la teinte du sillage
+    en dépendent tous les deux. Le zoom s'adapte en continu au rayon maximum récent de la bille ;
+    il n'y a plus d'ancien mode de zoom basé sur la distance de couplage.
+    <br><br>
+    Le centre n'est pas montré : il se <b>découvre</b>. Approchez-vous avec cohérence, laissez le
+    brouillard se lever. D'abord une structure brisée, puis l'encre noire, puis le blanc du papier,
+    et enfin — si tout est juste — le sceau rouge.
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const trailCanvas = document.getElementById("trail");
+const tctx = trailCanvas.getContext("2d");
+const fogCanvas = document.getElementById("fog");
+const fctx = fogCanvas.getContext("2d");
+
+function resize(){
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  trailCanvas.width = window.innerWidth; trailCanvas.height = window.innerHeight;
+  fogCanvas.width = window.innerWidth; fogCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener("resize", resize);
+
+const params = {
+  coreRadius: 45, maxAcceleration: 0.12, thrust: 0.35,
+  inertiaMin: 0.92, inertiaMax: 0.995, couplingCap: 0.08,
+  attackRate: 0.012, decayRate: 0.03, trailPersist: 0.94
+};
+const sliderIds = Object.keys(params);
+function decimalsFor(id){
+  if (id==="coreRadius") return 0;
+  if (id==="attackRate" || id==="decayRate") return 3;
+  return 3;
+}
+function syncSlidersFromParams(){
+  sliderIds.forEach(id=>{
+    const el = document.getElementById(id);
+    el.value = params[id];
+    document.getElementById("v_"+id).textContent = params[id].toFixed(decimalsFor(id));
+  });
+}
+sliderIds.forEach(id=>{
+  document.getElementById(id).addEventListener("input", e=>{
+    params[id] = parseFloat(e.target.value);
+    document.getElementById("v_"+id).textContent = params[id].toFixed(decimalsFor(id));
+  });
+});
+
+let coRotating = true, showTrail = true, showHalo = true;
+document.getElementById("coRotating").addEventListener("change", e=> coRotating = e.target.checked);
+document.getElementById("showTrail").addEventListener("change", e=> showTrail = e.target.checked);
+document.getElementById("showHalo").addEventListener("change", e=> showHalo = e.target.checked);
+
+const world = { cx:0, cy:0 };
+let player, ball, camera, radiusHistory, coherence, fogState;
+
+function applyPreset(name){
+  world.cx = canvas.width/2; world.cy = canvas.height/2;
+  if (name === "original"){
+    player = { x: world.cx+220, y: world.cy, vx:0, vy:0, radius:10 };
+    ball   = { x: player.x+60,  y: player.y, vx:0, vy:0, radius:14 };
+  } else if (name === "triangle"){
+    const vt = 0.3;
+    player = { x: world.cx+90, y: world.cy, vx:0, vy:vt, radius:10 };
+    ball   = { x: player.x+35, y: player.y, vx:0, vy:vt, radius:14 };
+  } else if (name === "loin"){
+    const vt = 1.6;
+    player = { x: world.cx+220, y: world.cy, vx:0, vy:vt, radius:10 };
+    ball   = { x: player.x+50,  y: player.y, vx:0, vy:vt, radius:14 };
+  } else if (name === "decouverte"){
+    const vt = 0.15;
+    player = { x: world.cx+340, y: world.cy+140, vx:0, vy:vt, radius:10 };
+    ball   = { x: player.x+25, y: player.y, vx:0, vy:vt, radius:14 };
+  }
+  camera = { angle:0, zoom:1, minZoom:0.05, maxZoom:12 };
+  radiusHistory = [];
+  coherence = 0;
+  fogState = { intensity: 1, revealed: false, redSealVisible: false };
+  tctx.clearRect(0,0,trailCanvas.width,trailCanvas.height);
+  fctx.clearRect(0,0,fogCanvas.width,fogCanvas.height);
+  telemetry.reset();
+  precession.reset();
+}
+
+const keys = {};
+window.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) e.preventDefault();
+});
+window.addEventListener("keyup", e => { keys[e.key] = false; });
+
+const telemetry = {
+  buffer: [], maxLen: 400,
+  reset(){ this.buffer = []; },
+  push(radius, angle){ this.buffer.push({radius, angle}); if (this.buffer.length > this.maxLen) this.buffer.shift(); },
+  ratio(){
+    const buf = this.buffer;
+    if (buf.length < 40) return null;
+    let peaks = 0;
+    for (let i=1;i<buf.length-1;i++) if (buf[i].radius > buf[i-1].radius && buf[i].radius > buf[i+1].radius) peaks++;
+    let totalAngle = 0;
+    for (let i=1;i<buf.length;i++){
+      let d = buf[i].angle - buf[i-1].angle;
+      while (d > Math.PI) d -= Math.PI*2;
+      while (d < -Math.PI) d += Math.PI*2;
+      totalAngle += d;
+    }
+    const revs = Math.abs(totalAngle) / (Math.PI*2);
+    if (revs < 0.05) return null;
+    return peaks / revs;
+  }
+};
+
+const precession = {
+  smOmega: 0, lastTheta: null, alpha: 0.985,
+  reset(){ this.smOmega = 0; this.lastTheta = null; },
+  update(theta){
+    if (this.lastTheta !== null){
+      let d = theta - this.lastTheta;
+      while (d > Math.PI) d -= Math.PI*2;
+      while (d < -Math.PI) d += Math.PI*2;
+      this.smOmega = this.smOmega*this.alpha + d*(1-this.alpha);
+    }
+    this.lastTheta = theta;
+    return this.smOmega;
+  }
+};
+
+function resonanceInfo(){
+  const r = telemetry.ratio();
+  if (r === null) return null;
+  const nearest = Math.max(1, Math.round(r));
+  const delta = Math.abs(r-nearest);
+  const closeness = Math.max(0, 1 - delta/0.5);
+  return { r, nearest, delta, closeness };
+}
+
+// ----- couleur tigre : de la braise éteinte à l'or vivant -----
+function coherenceColor(c){
+  const hue = 38 - 28 * (1 - c);
+  const sat = 70 + 25 * c;
+  const light = 25 + 30 * c;
+  return `hsl(${hue}, ${sat}%, ${light}%)`;
+}
+
+function update(){
+  let ax = 0, ay = 0;
+  if (keys["ArrowLeft"])  ax -= params.thrust;
+  if (keys["ArrowRight"]) ax += params.thrust;
+  if (keys["ArrowUp"])    ay -= params.thrust;
+  if (keys["ArrowDown"])  ay += params.thrust;
+  player.vx += ax; player.vy += ay;
+
+  const dx = world.cx - player.x, dy = world.cy - player.y;
+  const distance = Math.hypot(dx,dy);
+  if (distance > params.coreRadius){
+    const nx = dx/distance, ny = dy/distance;
+    const force = Math.min(params.maxAcceleration, distance*0.0008);
+    player.vx += nx*force; player.vy += ny*force;
+  }
+  player.x += player.vx; player.y += player.vy;
+
+  const centerDistance = Math.hypot(ball.x-world.cx, ball.y-world.cy);
+  const centerRatio = Math.min(1, centerDistance/1000);
+  ball.inertia = params.inertiaMin + centerRatio*(params.inertiaMax-params.inertiaMin);
+  ball.vx *= ball.inertia; ball.vy *= ball.inertia;
+  ball.x += ball.vx; ball.y += ball.vy;
+
+  const bx = player.x-ball.x, by = player.y-ball.y;
+  const couplingDistance = Math.hypot(bx,by);
+  if (couplingDistance > 0){
+    const couplingStrength = Math.min(params.couplingCap, couplingDistance*0.0005);
+    ball.vx += bx*couplingStrength; ball.vy += by*couplingStrength;
+  }
+
+  const ballTheta = Math.atan2(ball.y-world.cy, ball.x-world.cx);
+  const ballR = Math.hypot(ball.y-world.cy, ball.x-world.cx);
+  telemetry.push(ballR, ballTheta);
+  const smOmega = precession.update(ballTheta);
+  if (coRotating) camera.angle -= smOmega;
+
+  // ----- jauge de cohérence partagée -----
+  const intensity = Math.hypot(ax,ay) / params.thrust;
+  if (intensity > 0){
+    coherence = Math.max(0, coherence - intensity*params.decayRate);
+  } else {
+    const info = resonanceInfo();
+    const target = info ? info.closeness : 0;
+    coherence += (target - coherence) * params.attackRate;
+  }
+
+  // ----- brouillard de guerre : le centre se découvre lentement -----
+  const discoveryFactor = Math.max(0, 1 - ballR/500);
+
+  if (coherence > 0.5 && discoveryFactor > 0.2){
+    fogState.intensity = Math.max(0, fogState.intensity - 0.003 * coherence * discoveryFactor);
+    if (fogState.intensity < 0.85 && !fogState.revealed){
+      fogState.revealed = true;
+    }
+    if (fogState.intensity < 0.3 && !fogState.redSealVisible){
+      fogState.redSealVisible = true;
+    }
+  } else {
+    fogState.intensity = Math.min(1, fogState.intensity + 0.001);
+  }
+
+  // ----- zoom adaptatif (rayon max récent) -----
+  radiusHistory.push(ballR);
+  if (radiusHistory.length > 260) radiusHistory.shift();
+  const maxR = Math.max(params.coreRadius, ...radiusHistory);
+  const targetZoom = 0.80 * Math.min(canvas.width,canvas.height) / (2*(maxR+30));
+  camera.zoom += (Math.max(camera.minZoom,Math.min(camera.maxZoom,targetZoom)) - camera.zoom) * 0.03;
+}
+
+function applyCameraTransform(c){
+  c.translate(canvas.width/2, canvas.height/2);
+  c.scale(camera.zoom, camera.zoom);
+  if (coRotating){
+    c.rotate(camera.angle);
+    c.translate(-world.cx, -world.cy);
+  } else {
+    c.translate(-ball.x, -ball.y);
+  }
+}
+
+function drawTrailLayer(){
+  const fadeIntensity = 1 - Math.min(0.25, params.trailPersist * 0.26);
+  tctx.save();
+  tctx.globalCompositeOperation = "source-over";
+  tctx.fillStyle = `rgba(6,4,3,${fadeIntensity})`;
+  tctx.fillRect(0,0,trailCanvas.width,trailCanvas.height);
+  tctx.restore();
+
+  const color = coherenceColor(coherence);
+  tctx.save();
+  applyCameraTransform(tctx);
+  tctx.globalCompositeOperation = "lighter";
+  const r = ball.radius*(1.1+0.9*coherence);
+  const grad = tctx.createRadialGradient(ball.x,ball.y,0, ball.x,ball.y,r);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, "rgba(0,0,0,0)");
+  tctx.fillStyle = grad;
+  tctx.globalAlpha = 0.65 + 0.30*coherence;
+  tctx.beginPath();
+  tctx.arc(ball.x, ball.y, r, 0, Math.PI*2);
+  tctx.fill();
+  tctx.restore();
+}
+
+function drawCenterThroughFog(c){
+  const fog = fogState.intensity;
+  const alpha = 1 - fog;
+
+  if (alpha <= 0.01) return;
+
+  // ----- couche 1 : la structure brisée (pinceau sec) -----
+  c.strokeStyle = `rgba(240,230,210,${0.15 * alpha})`;
+  c.lineWidth = 3 / camera.zoom;
+  c.setLineDash([20/camera.zoom, 12/camera.zoom]);
+  c.beginPath();
+  c.arc(world.cx, world.cy, params.coreRadius * (1 + 0.3*fog), 0, Math.PI*2);
+  c.stroke();
+  c.setLineDash([]);
+
+  // ----- couche 2 : l'encre noire (mystère) -----
+  c.strokeStyle = `rgba(6,4,3,${0.6 * alpha})`;
+  c.lineWidth = 8 / camera.zoom;
+  c.beginPath();
+  for (let i=0; i<=64; i++){
+    const angle = (i/64) * Math.PI*2;
+    const wobble = 1 + 0.05 * Math.sin(i*3.7) + 0.03 * Math.cos(i*1.3);
+    const r = params.coreRadius * 0.95 * wobble;
+    const x = world.cx + Math.cos(angle) * r;
+    const y = world.cy + Math.sin(angle) * r;
+    if (i===0) c.moveTo(x,y); else c.lineTo(x,y);
+  }
+  c.stroke();
+
+  // ----- couche 3 : le blanc du papier (lumière) -----
+  const whiteGrad = c.createRadialGradient(
+    world.cx, world.cy, 0,
+    world.cx, world.cy, params.coreRadius * 2.5 * (1 - fog*0.5)
+  );
+  whiteGrad.addColorStop(0, `rgba(240,230,210,${0.12 * alpha})`);
+  whiteGrad.addColorStop(1, "rgba(0,0,0,0)");
+  c.fillStyle = whiteGrad;
+  c.beginPath();
+  c.arc(world.cx, world.cy, params.coreRadius * 2.5 * (1 - fog*0.5), 0, Math.PI*2);
+  c.fill();
+
+  // ----- couche 4 : le sceau rouge (révélation finale) -----
+  if (fogState.redSealVisible){
+    const redAlpha = Math.max(0, (0.3 - fog) / 0.3) * alpha;
+    if (redAlpha > 0.01){
+      c.save();
+      c.translate(world.cx, world.cy);
+      c.rotate(Math.PI/4);
+      c.fillStyle = `rgba(194,58,30,${redAlpha * 0.8})`;
+      const sealSize = params.coreRadius * 0.25;
+      c.fillRect(-sealSize/2, -sealSize/2, sealSize, sealSize);
+      c.restore();
+
+      const redGrad = c.createRadialGradient(
+        world.cx, world.cy, 0,
+        world.cx, world.cy, sealSize*2
+      );
+      redGrad.addColorStop(0, `rgba(194,58,30,${redAlpha * 0.3})`);
+      redGrad.addColorStop(1, "rgba(0,0,0,0)");
+      c.fillStyle = redGrad;
+      c.beginPath();
+      c.arc(world.cx, world.cy, sealSize*2, 0, Math.PI*2);
+      c.fill();
+    }
+  }
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  if (showTrail){
+    drawTrailLayer();
+    ctx.drawImage(trailCanvas,0,0);
+  }
+
+  ctx.save();
+  applyCameraTransform(ctx);
+
+  // ----- le centre : découverte progressive -----
+  drawCenterThroughFog(ctx);
+
+  // ----- lien joueur-bille : fil d'or -----
+  ctx.strokeStyle = `rgba(255,184,77,${0.25 + 0.35 * coherence})`;
+  ctx.lineWidth = (1 + 2.5*coherence)/camera.zoom;
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(ball.x, ball.y);
+  ctx.stroke();
+
+  // ----- halo de cohérence : fourrure de lumière -----
+  if (showHalo){
+    const color = coherenceColor(coherence);
+    const haloR = ball.radius*2.5 + ball.radius*11*coherence;
+    const grad = ctx.createRadialGradient(ball.x,ball.y,0, ball.x,ball.y,haloR);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.15 + 0.70*coherence;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, haloR, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // ----- bille : goutte d'or -----
+  ctx.fillStyle = "#ffd27f";
+  ctx.shadowColor = "rgba(255,184,77,0.8)";
+  ctx.shadowBlur = 20 * coherence;
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // ----- joueur : griffe de lumière -----
+  ctx.fillStyle = "#f5ead5";
+  ctx.shadowColor = "rgba(255,107,53,0.6)";
+  ctx.shadowBlur = 10 + 10*coherence;
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // ----- le brouillard de guerre : un voile qui se lève -----
+  if (fogState.intensity > 0.02){
+    const fogGrad = ctx.createRadialGradient(
+      ball.x, ball.y, 0,
+      ball.x, ball.y, Math.max(canvas.width, canvas.height) * fogState.intensity
+    );
+    fogGrad.addColorStop(0, "rgba(6,4,3,0)");
+    fogGrad.addColorStop(0.7, `rgba(6,4,3,${fogState.intensity * 0.3})`);
+    fogGrad.addColorStop(1, `rgba(6,4,3,${fogState.intensity * 0.7})`);
+    ctx.fillStyle = fogGrad;
+    ctx.fillRect(
+      -canvas.width/2, -canvas.height/2,
+      canvas.width*2, canvas.height*2
+    );
+  }
+
+  ctx.restore();
+}
+
+const hRatio = document.getElementById("hRatio");
+const hNearest = document.getElementById("hNearest");
+const hDelta = document.getElementById("hDelta");
+const hCoherence = document.getElementById("hCoherence");
+const hPrec = document.getElementById("hPrec");
+const hFog = document.getElementById("hFog");
+
+function updateHud(){
+  const info = resonanceInfo();
+  if (!info){
+    hRatio.textContent = "–"; hNearest.textContent = "–"; hDelta.textContent = "–";
+    hRatio.className=""; hDelta.className="";
+  } else {
+    hRatio.textContent = info.r.toFixed(2);
+    hNearest.textContent = info.nearest;
+    hDelta.textContent = info.delta.toFixed(3);
+    const cls = info.delta < 0.03 ? "lock" : (info.delta < 0.15 ? "near" : "");
+    hRatio.className = cls; hDelta.className = cls;
+  }
+  hCoherence.textContent = coherence.toFixed(3);
+  hPrec.textContent = (precession.smOmega*60).toFixed(4) + " rad/s (éch. écran)";
+  hFog.textContent = (fogState.intensity * 100).toFixed(1) + "%";
+  if (fogState.revealed === false){
+    hFog.className = "dim";
+  } else if (fogState.redSealVisible){
+    hFog.className = "lock";
+  } else {
+    hFog.className = "near";
+  }
+}
+
+function loop(){
+  update(); draw(); updateHud();
+  requestAnimationFrame(loop);
+}
+
+document.getElementById("panelToggle").addEventListener("click", ()=>{
+  document.getElementById("panel").classList.toggle("collapsed");
+});
+document.querySelectorAll("button.preset").forEach(btn=>{
+  btn.addEventListener("click", ()=> applyPreset(btn.dataset.preset));
+});
+
+syncSlidersFromParams();
+applyPreset("decouverte");
+loop();
+</script>
+</body>
+</html>
