@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SurPhiN — Interface de couplage réciproque Humain · Machine · IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F7F5F0;
+  --surface: #FFFFFF;
+  --ink: #1A1F1C;
+  --muted: #6B6558;
+  --accent: #2D5A3D;
+  --accent-weak: color-mix(in oklab, var(--accent) 10%, var(--bg));
+  --accent-strong: #1F3D2A;
+  --residue: #B85C38;
+  --residue-weak: color-mix(in oklab, var(--residue) 12%, var(--bg));
+  --line: color-mix(in oklab, var(--ink) 10%, transparent);
+  --line-strong: color-mix(in oklab, var(--ink) 20%, transparent);
+  --step--1: clamp(0.85rem, 0.82rem + 0.2vw, 0.95rem);
+  --step-0: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+  --step-1: clamp(1.25rem, 1.1rem + 0.6vw, 1.65rem);
+  --step-2: clamp(1.6rem, 1.3rem + 1.2vw, 2.4rem);
+  --step-3: clamp(2.2rem, 1.6rem + 2.4vw, 3.8rem);
+  --space: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 18px -8px rgba(0,0,0,0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121412;
+    --surface: #1A1F1C;
+    --ink: #E8E4DE;
+    --muted: #9E9A94;
+    --accent: #5A8C6E;
+    --accent-weak: color-mix(in oklab, var(--accent) 15%, var(--surface));
+    --accent-strong: #7AAF8F;
+    --residue: #D97B5A;
+    --residue-weak: color-mix(in oklab, var(--residue) 15%, var(--surface));
+    --line: color-mix(in oklab, var(--ink) 15%, transparent);
+    --line-strong: color-mix(in oklab, var(--ink) 30%, transparent);
+    --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 8px 24px -10px rgba(0,0,0,0.5);
+  }
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: "Source Sans 3", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+  font-size: var(--step-0);
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+h1, h2, h3, h4 {
+  font-family: "Playfair Display", "Hiragino Sans", "Yu Gothic", "Noto Sans JP", serif;
+  line-height: 1.2;
+  margin: 0 0 var(--space) 0;
+  font-weight: 600;
+}
+h1 { font-size: var(--step-3); letter-spacing: -0.02em; }
+h2 { font-size: var(--step-2); letter-spacing: -0.01em; margin-top: calc(var(--space) * 2.5); }
+h3 { font-size: var(--step-1); margin-top: calc(var(--space) * 1.8); }
+h4 { font-size: var(--step-0); font-weight: 600; margin-top: calc(var(--space) * 1.2); }
+
+p { margin: 0 0 var(--space) 0; }
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  transition: border-color 0.2s, color 0.2s;
+}
+a:hover { border-color: var(--accent); }
+
+.container {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 calc(var(--space) * 1.2);
+}
+
+header {
+  padding: calc(var(--space) * 3) 0 calc(var(--space) * 2);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: calc(var(--space) * 2);
+}
+
+header .subtitle {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-size: var(--step-1);
+  color: var(--muted);
+  margin-top: calc(var(--space) * 0.5);
+  display: block;
+}
+
+/* Sticky nav */
+nav.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: color-mix(in oklab, var(--bg) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+  padding: calc(var(--space) * 0.6) 0;
+  margin-bottom: calc(var(--space) * 2);
+}
+nav.sticky ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 0.8);
+}
+nav.sticky a {
+  font-size: var(--step--1);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: none;
+  padding: 0.3em 0.6em;
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+nav.sticky a:hover, nav.sticky a.active {
+  color: var(--accent);
+  background: var(--accent-weak);
+}
+
+section {
+  margin-bottom: calc(var(--space) * 3);
+  padding-bottom: calc(var(--space) * 2);
+  border-bottom: 1px solid var(--line);
+}
+section:last-of-type { border-bottom: none; }
+
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 1.2);
+  box-shadow: var(--shadow);
+}
+
+/* Accordion */
+.accordion-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-bottom: calc(var(--space) * 0.8);
+  overflow: hidden;
+  background: var(--surface);
+}
+.accordion-header {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: calc(var(--space) * 0.9) calc(var(--space) * 1.1);
+  font-family: "Playfair Display", serif;
+  font-size: var(--step-0);
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+}
+.accordion-header:hover { background: var(--accent-weak); }
+.accordion-header::after {
+  content: "+";
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 1.4em;
+  color: var(--accent);
+  transition: transform 0.3s;
+}
+.accordion-item.open .accordion-header::after { transform: rotate(45deg); }
+.accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease, padding 0.4s ease;
+  padding: 0 calc(var(--space) * 1.1);
+}
+.accordion-item.open .accordion-body {
+  max-height: 1200px;
+  padding: 0 calc(var(--space) * 1.1) calc(var(--space) * 1.1);
+}
+
+/* Marginal notes */
+.marginal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: calc(var(--space) * 1.2);
+}
+@media (min-width: 900px) {
+  .marginal-grid { grid-template-columns: 1fr 280px; }
+  aside.marginal {
+    position: sticky;
+    top: 100px;
+    align-self: start;
+  }
+}
+aside.marginal {
+  font-size: var(--step--1);
+  color: var(--muted);
+  border-left: 2px solid var(--residue);
+  padding-left: calc(var(--space) * 0.8);
+  line-height: 1.55;
+}
+aside.marginal strong { color: var(--residue); font-weight: 600; }
+
+/* Game section */
+.game-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: calc(var(--space) * 1.5);
+  margin-top: calc(var(--space) * 1.5);
+}
+@media (min-width: 900px) {
+  .game-wrap { grid-template-columns: 1.4fr 0.6fr; }
+}
+
+#gameCanvas {
+  width: 100%;
+  height: 500px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  display: block;
+  cursor: crosshair;
+}
+
+.game-panel {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 0.8);
+}
+
+.game-panel .panel-block {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 0.9);
+}
+
+.game-panel h4 {
+  margin: 0 0 0.6em;
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--step--1);
+  margin-bottom: 0.4em;
+}
+.status-row .val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.status-row .val.ok { color: var(--accent); }
+.status-row .val.warn { color: var(--residue); }
+
+/* Portal legend */
+.portal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  margin-top: 0.5em;
+}
+.portal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: var(--step--1);
+  padding: 0.3em 0.7em;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.portal-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Log */
+.game-log {
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: var(--step--1);
+  font-family: monospace;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.6em;
+  line-height: 1.5;
+}
+.game-log .log-entry { margin-bottom: 0.3em; border-bottom: 1px solid var(--line); padding-bottom: 0.3em; }
+.game-log .log-entry:last-child { border-bottom: none; }
+.game-log .ts { color: var(--muted); font-size: 0.85em; }
+
+/* Calculator */
+.calculator {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: calc(var(--space) * 1.5);
+}
+@media (min-width: 700px) {
+  .calculator { grid-template-columns: 1fr 1fr; }
+}
+.calc-controls label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4em;
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.calc-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  margin-bottom: 0.3em;
+}
+.calc-controls select {
+  width: 100%;
+  padding: 0.5em;
+  font-family: inherit;
+  font-size: var(--step-0);
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+}
+.range-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
+}
+.calc-results {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(var(--space) * 0.8);
+}
+.result-card {
+  background: var(--accent-weak);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 0.9);
+  text-align: center;
+}
+.result-card.residue {
+  background: var(--residue-weak);
+  border-color: color-mix(in oklab, var(--residue) 30%, transparent);
+}
+.result-card .value {
+  font-family: "Playfair Display", serif;
+  font-size: var(--step-2);
+  font-weight: 700;
+  color: var(--accent-strong);
+  display: block;
+  line-height: 1.1;
+  margin-bottom: 0.2em;
+}
+.result-card.residue .value { color: var(--residue); }
+.result-card .label {
+  font-size: var(--step--1);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.equivalent {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: calc(var(--space) * 0.8);
+  font-size: var(--step--1);
+  color: var(--muted);
+  text-align: center;
+}
+.equivalent strong { color: var(--ink); }
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: calc(var(--space) * 1.2) 0;
+  font-size: var(--step--1);
+}
+th, td {
+  padding: 0.7em 0.9em;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.85em;
+  background: var(--accent-weak);
+}
+tr:hover td { background: color-mix(in oklab, var(--accent) 4%, transparent); }
+
+blockquote {
+  margin: calc(var(--space) * 1.2) 0;
+  padding: calc(var(--space) * 0.8) calc(var(--space) * 1.2);
+  border-left: 3px solid var(--residue);
+  background: var(--residue-weak);
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  color: var(--ink);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.math {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: calc(var(--space) * 2) 0;
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .accordion-body { transition: none; }
+}
+
+@media print {
+  body { background: #fff; color: #000; }
+  .no-print { display: none; }
+  nav.sticky { position: static; backdrop-filter: none; }
+  aside.marginal { position: static; }
+}
+@page { size: A4; margin: 18mm; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0);
+  white-space: nowrap; border: 0;
+}
+
+/* Buttons */
+button.action {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.6em 1.2em;
+  border-radius: var(--radius);
+  font-family: inherit;
+  font-size: var(--step--1);
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+button.action:hover { opacity: 0.9; }
+button.action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+small.hint {
+  display: block;
+  color: var(--muted);
+  font-size: 0.85em;
+  margin-top: 0.3em;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>SurPhiN</h1>
+    <span class="subtitle">Interface de couplage réciproque — Humain · Machine · IA</span>
+  </div>
+</header>
+
+<nav class="sticky no-print" aria-label="Sections">
+  <div class="container">
+    <ul>
+      <li><a href="#formalisme">Formalism</a></li>
+      <li><a href="#observateur">Observateur</a></li>
+      <li><a href="#jeu" class="active">Le Jeu</a></li>
+      <li><a href="#empreinte">Empreinte</a></li>
+      <li><a href="#synthese">Synthèse</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="container">
+
+  <!-- HERO -->
+  <div class="hero-wrap" style="display:grid; grid-template-columns:1fr; gap:calc(var(--space)*2); align-items:center; margin-bottom:calc(var(--space)*3);">
+    <div class="hero-text" style="max-width:55ch;">
+      <p style="font-size:var(--step-1); color:var(--ink); line-height:1.45; font-family:'Playfair Display',serif;">
+        « Le blanc est la condition de continuité du sens. Le jeu est l'interface où cette continuité se met en acte. »
+      </p>
+      <p>
+        Ce document articule trois registres : un <strong>topos non booléen</strong> comme espace de vérité acceptale, un <strong>observateur comme interface de couplage</strong>, et un <strong>jeu d'interface</strong> (surffinPhi) qui matérialise le contrôle d'accès réciproque entre humain, machine locale et outils IA.
+      </p>
+    </div>
+  </div>
+
+  <!-- FORMALISME -->
+  <section id="formalisme">
+    <h2>1. Le cadre formel</h2>
+    <div class="marginal-grid">
+      <div class="main-col">
+        <p>
+          On travaille dans un <strong>topos élémentaire</strong> <span class="math">ℰ</span> muni de trois ingrédients : un <strong>objet de vérité</strong> <span class="math">Ω</span> non booléen, un <strong>objet des naturels</strong> <span class="math">N</span>, et un <strong>objet différentiel</strong> <span class="math">D = {x ∈ R | x² = 0}</span>.
+        </p>
+        <p>
+          L'hypothèse de non-bivalence (<span class="math">¬¬φ ≠ φ</span>) est la source de tous les écarts. Elle permet de penser une vérité qui n'est ni totalement présente ni totalement absente.
+        </p>
+
+        <div class="accordion-item open">
+          <button class="accordion-header" aria-expanded="true">L'observateur comme filtre</button>
+          <div class="accordion-body">
+            <p>
+              Un <strong>observateur</strong> sur <span class="math">ℰ</span> est un <strong>filtre</strong> <span class="math">ℱ</span> sur le treillis des ouverts <span class="math">𝒪(X)</span>. Le <strong>blanc</strong> de l'observateur est l'ouvert maximal disjoint de tous les <span class="math">U ∈ ℱ</span> : l'espace où l'observateur n'a pas encore d'information.
+            </p>
+            <blockquote>« Sans blanc, pas de point de vue, donc pas de vérité acceptale. »</blockquote>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">L'epsilon d'écriture non performative</button>
+          <div class="accordion-body">
+            <p>
+              Une <strong>écriture</strong> <span class="math">e : A → A</span> admet un <strong>epsilon non performatif</strong> s'il existe <span class="math">ε : D → A</span> tel que :
+            </p>
+            <p style="text-align:center; font-family:'Playfair Display',serif; font-size:var(--step-1); color:var(--accent-strong);">
+              e ∘ ε ≠ ε &nbsp; mais &nbsp; e ∘ ε ∼ ε
+            </p>
+            <p>L'epsilon est un <strong>écart pur</strong> : l'écriture agit mais ne fixe pas. C'est la trace minimale du passage.</p>
+          </div>
+        </div>
+
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">Gödel comme cas particulier</button>
+          <div class="accordion-body">
+            <p>
+              Soit <span class="math">e : Ω<sup>N</sup> → Ω<sup>N</sup></span> représentant la démontrabilité. Le théorème de <strong>Lawvere</strong> (1969) dit que <span class="math">e</span> n'a pas de point fixe global. L'écart gödelien est exactement un epsilon non performatif.
+            </p>
+            <p>
+              La vérité acceptale pour un observateur <span class="math">ℱ</span> contient l'énoncé gödelien <strong>si et seulement si</strong> le blanc <span class="math">B(ℱ)</span> est non vide.
+            </p>
+          </div>
+        </div>
+      </div>
+      <aside class="marginal">
+        <strong>Note marginale.</strong> Le choix d'un topos non booléen formalise l'idée que la vérité peut être <em>locale</em>, <em>partielle</em>, <em>en devenir</em>. C'est exactement ce que Simondon nommait la préindividualité.
+      </aside>
+    </div>
+  </section>
+
+  <!-- OBSERVATEUR -->
+  <section id="observateur">
+    <h2>2. L'observateur et le sense amplifier</h2>
+    <div class="marginal-grid">
+      <div class="main-col">
+        <p>
+          L'observateur n'est pas dans la boucle <span class="math">ABC</span>. Il est ce qui la rend possible. Il est d'abord un <strong>élément du réel</strong> doté d'une capacité de couplage : une interface qui transforme une différence physique en différence lisible.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Notion intuitive</th><th>Objet mathématique</th><th>Référence</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Cadre formel</td><td>Topos <span class="math">ℰ</span> non booléen</td><td>Lawvere, Johnstone</td></tr>
+            <tr><td>Observateur</td><td>Filtre <span class="math">ℱ</span> sur <span class="math">𝒪(X)</span></td><td>Topologie sans points</td></tr>
+            <tr><td>Blanc</td><td><span class="math">B(ℱ)</span>, ouvert sans point</td><td>Kripke–Joyal</td></tr>
+            <tr><td>Epsilon d'écriture</td><td><span class="math">ε : D → A</span></td><td>SDG (Kock–Lawvere)</td></tr>
+            <tr><td>Vérité acceptale</td><td><span class="math">𝒱<sub>ℱ</sub> = colim<sub>U∈ℱ</sub> 𝒱(U)</span></td><td>Théorie des faisceaux</td></tr>
+            <tr><td>Gödel</td><td>Absence de point fixe pour <span class="math">e</span></td><td>Lawvere 1969</td></tr>
+          </tbody>
+        </table>
+        <blockquote>
+          « Le temps est ce qui permet à une continuité d'être reconnue à travers le changement ; l'observateur est l'un des dispositifs physiques capables d'exploiter cette continuité. »
+        </blockquote>
+      </div>
+      <aside class="marginal">
+        <strong>Le sense amplifier.</strong> Comme en électronique, l'observateur n'est pas le signal qu'il mesure. Il est une interface de couplage qui transforme une différence physique en différence lisible — sans annuler la différence.
+      </aside>
+    </div>
+  </section>
+
+  <!-- LE JEU -->
+  <section id="jeu">
+    <h2>3. surffinPhi — Le jeu d'interface</h2>
+    <p>
+      <strong>surffinPhi</strong> est un <strong>captcha à double sens</strong>. L'humain contrôle la bille par les flèches du clavier. La bille est son intention. Les portails colorés sont les services IA candidats (local, edge, cloud). Le couplage entre le joueur et la bille matérialise l'<strong>inertie de l'intention</strong>. Le centre est le <strong>noyau local</strong>. La distance, la vitesse, l'accord de couplage déterminent quel outil peut être invoqué — et avec quelle empreinte.
+    </p>
+
+    <div class="game-wrap">
+      <canvas id="gameCanvas" width="900" height="500" aria-label="Jeu surffinPhi"></canvas>
+
+      <div class="game-panel">
+        <div class="panel-block">
+          <h4>État du couplage</h4>
+          <div class="status-row"><span>Distance bille-joueur</span><span class="val" id="distVal">0</span></div>
+          <div class="status-row"><span>Vitesse bille</span><span class="val" id="speedVal">0</span></div>
+          <div class="status-row"><span>Inertie effective</span><span class="val" id="inertiaVal">0.980</span></div>
+          <div class="status-row"><span>Portail actif</span><span class="val ok" id="portalVal">—</span></div>
+          <div class="status-row"><span>Accord éthique</span><span class="val" id="ethicVal">—</span></div>
+        </div>
+
+        <div class="panel-block">
+          <h4>Machine locale (Mint)</h4>
+          <div class="status-row"><span>Capacité locale</span><span class="val ok">OK</span></div>
+          <div class="status-row"><span>RAM dispo</span><span class="val">est. 4 GB</span></div>
+          <div class="status-row"><span>API embarquées</span><span class="val">2</span></div>
+          <div class="status-row"><span>Session</span><span class="val" id="sessionVal">00:00</span></div>
+        </div>
+
+        <div class="panel-block">
+          <h4>Portails IA</h4>
+          <div class="portal-legend">
+            <span class="portal-chip"><span class="portal-dot" style="background:#2D5A3D;"></span> Local (0 Wh)</span>
+            <span class="portal-chip"><span class="portal-dot" style="background:#5A8C6E;"></span> Edge léger</span>
+            <span class="portal-chip"><span class="portal-dot" style="background:#D4A843;"></span> Cloud moyen</span>
+            <span class="portal-chip"><span class="portal-dot" style="background:#B85C38;"></span> Cloud lourd</span>
+          </div>
+          <small class="hint">Amenez la bille dans un portail pour tenter l'accord. Le couplage doit être stable.</small>
+        </div>
+
+        <div class="panel-block">
+          <h4>Journal d'interface</h4>
+          <div class="game-log" id="gameLog">
+            <div class="log-entry"><span class="ts">[00:00]</span> Initialisation du noyau local...</div>
+          </div>
+        </div>
+
+        <button class="action" id="resetGame" style="width:100%;">Réinitialiser le noyau</button>
+      </div>
+    </div>
+
+    <h3 style="margin-top:calc(var(--space)*2);">Règles du jeu d'interface</h3>
+    <div class="marginal-grid">
+      <div class="main-col">
+        <div class="accordion-item open">
+          <button class="accordion-header" aria-expanded="true">Règle 1 — La conscience de l'inconsist-science</button>
+          <div class="accordion-body">
+            <p>
+              Chaque participant (humain ou machine) est conscient de ses limites : connaissances partielles, fatigue, surcharge, enthousiasme débordant. Le jeu rend visible cette inconsist-science par la <strong>latence de la bille</strong> et le <strong>seuil de couplage</strong>. Si le joueur bouge trop vite, la bille se désolidarise — l'intention n'est plus en accord avec l'action.
+            </p>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">Règle 2 — L'accord d'interface « Mint »</button>
+          <div class="accordion-body">
+            <p>
+              Chaque commit, chaque appel à un outil IA est signé d'un <strong>accord d'interface</strong>. Ce n'est pas une simple autorisation, c'est une <strong>reconnaissance réciproque</strong> : l'humain reconnaît la machine, la machine reconnaît l'humain, et ensemble ils évaluent la nécessité de faire appel à un tiers (cloud). L'accord est mesuré par la <strong>stabilité du couplage</strong> (distance joueur-bille) et la <strong>cohérence directionnelle</strong>.
+            </p>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">Règle 3 — Le coût de dissolution</button>
+          <div class="accordion-body">
+            <p>
+              Le temps de session, l'écart entre projection et maintien, constituent le <strong>coût de dissolution dans le projet</strong>. Plus la session est longue, plus l'inertie de la bille augmente, plus le couplage devient difficile à maintenir. Le joueur doit alors choisir : ralentir (retour au noyau local), ou accepter la dérive (appel à un outil externe plus puissant mais plus coûteux).
+            </p>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <button class="accordion-header" aria-expanded="false">Règle 4 — La parenté des contenants</button>
+          <div class="accordion-body">
+            <p>
+              Chaque portail représente un <strong>contenant</strong> avec ses transformants propres. Le portail local (vert) a un transformant identitaire — il ne modifie pas la trace. Le portail cloud lourd (rouille) a un transformant maximal — il reconfigure entièrement la trace en échange d'une puissance supérieure. Le jeu oblige le joueur à <strong>sentir</strong> cette différence par la physique du couplage, pas seulement à la lire.
+            </p>
+          </div>
+        </div>
+      </div>
+      <aside class="marginal">
+        <strong>Double captcha.</strong> L'humain prouve qu'il est humain par sa capacité à maintenir un couplage stable avec une inertie. La machine prouve qu'elle respecte les contraintes en refusant les appels lorsque le couplage est rompu ou l'empreinte trop élevée.
+      </aside>
+    </div>
+  </section>
+
+  <!-- EMPREINTE -->
+  <section id="empreinte">
+    <h2>4. Calculateur d'empreinte LLM</h2>
+    <p>
+      Cet outil estime l'empreinte énergétique et carbone d'une interaction avec un grand modèle de langage. Les valeurs par défaut s'appuient sur les données publiées par <em>Luccioni et al.</em> et les estimations du <em>MLCommons AI Inference working group</em>. L'objectif est de <strong>rendre sensible</strong> un coût habituellement invisible.
+    </p>
+
+    <div class="surface calculator">
+      <div class="calc-controls">
+        <label for="tokens">Tokens générés <span class="range-value" id="tokensVal">1000</span></label>
+        <input type="range" id="tokens" min="100" max="50000" step="100" value="1000">
+
+        <label for="modelSelect">Modèle</label>
+        <select id="modelSelect">
+          <option value="0.08|0.05">LLM moyen (7–13B params) — ~0.08 Wh / 1k tokens</option>
+          <option value="0.25|0.15">Grand LLM (30–70B params) — ~0.25 Wh / 1k tokens</option>
+          <option value="0.60|0.35">Très grand LLM (100B+ params) — ~0.60 Wh / 1k tokens</option>
+          <option value="0.03|0.02">Modèle optimisé / edge — ~0.03 Wh / 1k tokens</option>
+        </select>
+
+        <label for="pue">PUE du datacenter <span class="range-value" id="pueVal">1.3</span></label>
+        <input type="range" id="pue" min="1.05" max="2.0" step="0.05" value="1.3">
+
+        <label for="carbon">Intensité carbone <span class="range-value" id="carbonVal">120</span> gCO₂eq / kWh</label>
+        <input type="range" id="carbon" min="20" max="600" step="10" value="120">
+        <small class="hint">France ~60–80, UE moyenne ~120, USA ~180, charbon ~600</small>
+      </div>
+
+      <div class="calc-results" id="results">
+        <div class="result-card">
+          <span class="value" id="energyVal">0.10</span>
+          <span class="label">Wh consommés</span>
+        </div>
+        <div class="result-card">
+          <span class="value" id="co2Val">0.01</span>
+          <span class="label">g CO₂eq</span>
+        </div>
+        <div class="result-card residue">
+          <span class="value" id="waterVal">0.06</span>
+          <span class="label">ml H₂O (est.)</span>
+        </div>
+        <div class="result-card residue">
+          <span class="value" id="phoneVal">0.01</span>
+          <span class="label">% recharge smartphone</span>
+        </div>
+        <div class="equivalent">
+          Équivalent à <strong id="equivVal">~0.3 m</strong> de trajet en voiture (estimation)
+        </div>
+      </div>
+    </div>
+
+    <h3>Comment lire ces nombres ?</h3>
+    <p>
+      Une requête de 1000 tokens semble négligeable isolément. Mais multipliée par des millions d'utilisateurs et des milliards de requêtes quotidiennes, elle devient une <strong>charge physique</strong>. Le calcul ci-dessus ne capture que la partie directement mesurable (inférence). L'empreinte totale (entraînement, fabrication, amortissement) est 10 à 100 fois plus grande.
+    </p>
+    <p>
+      Le <strong>résidu</strong> <span class="math">R</span> de notre formalisme trouve ici un sens concret : ce que le calculateur ne peut pas encore intégrer (l'amortissement de l'infrastructure, les externalités minières) est précisément le blanc de notre observateur. Il n'est pas nul ; il est <em>non encore observable</em>.
+    </p>
+  </section>
+
+  <!-- SYNTHÈSE -->
+  <section id="synthese">
+    <h2>5. Synthèse et conjecture</h2>
+    <div class="marginal-grid">
+      <div class="main-col">
+        <p>
+          Le formalisme complet repose sur une affirmation centrale : <strong>le blanc est nécessaire à la vérité acceptale</strong>. Sans ouvert non couvert par l'observateur, la vérité devient globale et perd son caractère de point de vue.
+        </p>
+        <p>
+          Cela se traduit par une <strong>conjecture de falsifiabilité</strong> :
+        </p>
+        <blockquote>
+          Dans tout topos non booléen avec <span class="math">N</span>, pour tout observateur <span class="math">ℱ</span> avec <span class="math">B(ℱ) = ∅</span>, la vérité acceptale <span class="math">𝒱<sub>ℱ</sub></span> est triviale (soit <span class="math">{⊤}</span>, soit vide).
+        </blockquote>
+        <p>
+          Le jeu surffinPhi est une <strong>incarnation phénoménologique</strong> de cette structure. Le joueur est l'observateur, la bille est son epsilon d'intention, les portails sont les filtres de vérité acceptale. Le blanc est l'espace entre le joueur et la bille lorsque le couplage est rompu — ce qui n'est pas encore observable mais qui rend possible la reconnaissance.
+        </p>
+        <p>
+          Le calculateur d'empreinte est une <strong>incarnation matérielle</strong> du même formalisme : il mesure ce qui est observable (énergie, CO₂), laisse dans le blanc ce qui ne l'est pas encore, et produit une vérité acceptale — un nombre que nous pouvons accepter comme réel sans prétendre qu'il est total.
+        </p>
+        <p>
+          <strong>Prochaine étape.</strong> Intégrer le paysage IEEE754 (allocation des bits entre exposant et mantisse) comme métaphore technique du compromis entre <em>portée</em> (cloud lourd) et <em>précision locale</em> (noyau). Chaque portail du jeu pourrait être caractérisé par un couple <span class="math">(w, t)</span> (bits d'exposant, bits de mantisse), rendant explicite le trade-off entre puissance et finesse.
+        </p>
+      </div>
+      <aside class="marginal">
+        <strong>Le blanc est le jeu.</strong> Ce n'est pas l'absence de contenu, c'est l'espace où le couplage se forme ou se déforme. Sans ce blanc, il n'y a pas de reconnaissance réciproque possible entre humain et machine.
+      </aside>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <p>SurPhiN — Document construit pour la réflexion, pas pour la démonstration.<br>
+    Les calculs écologiques sont des estimations à vocation pédagogique. Le jeu est une preuve de concept philosophique.</p>
+  </div>
+</footer>
+
+<script>
+/* ============================
+   NAVIGATION ACTIVE
+   ============================ */
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav.sticky a');
+function onScroll(){
+  let cur = '';
+  sections.forEach(sec => {
+    const top = window.scrollY + 120;
+    if(top >= sec.offsetTop) cur = sec.getAttribute('id');
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#'+cur);
+  });
+}
+window.addEventListener('scroll', onScroll, {passive:true});
+
+/* ============================
+   ACCORDION
+   ============================ */
+document.querySelectorAll('.accordion-header').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const item = btn.closest('.accordion-item');
+    const open = item.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(open));
+  });
+});
+
+/* ============================
+   CALCULATOR
+   ============================ */
+const tokensEl = document.getElementById('tokens');
+const modelEl = document.getElementById('modelSelect');
+const pueEl = document.getElementById('pue');
+const carbonEl = document.getElementById('carbon');
+
+function updateCalc(){
+  const tokens = parseInt(tokensEl.value, 10);
+  const [whPer1k, waterPer1k] = modelEl.value.split('|').map(parseFloat);
+  const pue = parseFloat(pueEl.value);
+  const carbon = parseInt(carbonEl.value, 10);
+
+  document.getElementById('tokensVal').textContent = tokens.toLocaleString('fr-FR');
+  document.getElementById('pueVal').textContent = pue.toFixed(2);
+  document.getElementById('carbonVal').textContent = carbon;
+
+  const kTokens = tokens / 1000;
+  const energyWh = whPer1k * kTokens * pue;
+  const energyKWh = energyWh / 1000;
+  const co2g = energyKWh * carbon;
+  const waterMl = waterPer1k * kTokens;
+  const phonePercent = (energyWh / 12) * 100;
+  const metersCar = (co2g / 200) * 1000;
+
+  document.getElementById('energyVal').textContent = energyWh.toFixed(2);
+  document.getElementById('co2Val').textContent = co2g.toFixed(3);
+  document.getElementById('waterVal').textContent = waterMl.toFixed(1);
+  document.getElementById('phoneVal').textContent = phonePercent.toFixed(2);
+  document.getElementById('equivVal').textContent = `~${metersCar.toFixed(1)} m`;
+}
+[tokensEl, modelEl, pueEl, carbonEl].forEach(el => el.addEventListener('input', updateCalc));
+updateCalc();
+
+/* ============================
+   SURFFINPHI GAME
+   ============================ */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Responsive canvas
+function resizeCanvas(){
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// Game state
+const world = {
+  cx: () => canvas.width / 2,
+  cy: () => canvas.height / 2,
+  coreRadius: 45,
+  maxAcceleration: 0.12,
+  maxCouplingDistance: 180
+};
+
+const player = {
+  x: 0, y: 0, vx: 0, vy: 0, radius: 10, thrust: 0.35,
+  reset(){
+    this.x = world.cx() + 180;
+    this.y = world.cy();
+    this.vx = 0; this.vy = 0;
+  }
+};
+
+const ball = {
+  x: 0, y: 0, vx: 0, vy: 0, radius: 14, inertia: 0.985,
+  reset(){
+    this.x = player.x + 40;
+    this.y = player.y;
+    this.vx = 0; this.vy = 0;
+  }
+};
+
+player.reset();
+ball.reset();
+
+const keys = {};
+window.addEventListener('keydown', e => { keys[e.key] = true; });
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// Portals = IA service candidates
+const portals = [
+  { name: 'Local', color: '#2D5A3D', whPer1k: 0, x: 0, y: 0, r: 35, minCoupling: 0, maxInertia: 1.0, align: 'full' },
+  { name: 'Edge léger', color: '#5A8C6E', whPer1k: 0.03, x: 0, y: 0, r: 32, minCoupling: 40, maxInertia: 0.99, align: 'high' },
+  { name: 'Cloud moyen', color: '#D4A843', whPer1k: 0.12, x: 0, y: 0, r: 38, minCoupling: 80, maxInertia: 0.98, align: 'medium' },
+  { name: 'Cloud lourd', color: '#B85C38', whPer1k: 0.50, x: 0, y: 0, r: 42, minCoupling: 120, maxInertia: 0.97, align: 'low' }
+];
+
+function positionPortals(){
+  const cx = world.cx(), cy = world.cy();
+  const dist = Math.min(canvas.width, canvas.height) * 0.35;
+  portals[0].x = cx - dist; portals[0].y = cy - dist * 0.3;
+  portals[1].x = cx + dist; portals[1].y = cy - dist * 0.5;
+  portals[2].x = cx - dist * 0.7; portals[2].y = cy + dist * 0.7;
+  portals[3].x = cx + dist * 0.6; portals[3].y = cy + dist * 0.8;
+}
+positionPortals();
+window.addEventListener('resize', positionPortals);
+
+// Logging
+const logEl = document.getElementById('gameLog');
+let logCounter = 0;
+function log(msg, type='info'){
+  logCounter++;
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  const ts = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  entry.innerHTML = `<span class="ts">[${ts}]</span> ${msg}`;
+  if(type === 'warn') entry.style.color = 'var(--residue)';
+  if(type === 'ok') entry.style.color = 'var(--accent)';
+  logEl.insertBefore(entry, logEl.firstChild);
+  while(logEl.children.length > 20) logEl.removeChild(logEl.lastChild);
+}
+
+// Session timer
+let sessionStart = Date.now();
+function sessionTime(){
+  const s = Math.floor((Date.now() - sessionStart) / 1000);
+  const m = Math.floor(s / 60).toString().padStart(2,'0');
+  const sec = (s % 60).toString().padStart(2,'0');
+  return `${m}:${sec}`;
+}
+setInterval(() => { document.getElementById('sessionVal').textContent = sessionTime(); }, 1000);
+
+// Physics
+function updateGame(){
+  // Player input
+  let ax = 0, ay = 0;
+  if(keys['ArrowLeft']) ax -= player.thrust;
+  if(keys['ArrowRight']) ax += player.thrust;
+  if(keys['ArrowUp']) ay -= player.thrust;
+  if(keys['ArrowDown']) ay += player.thrust;
+  player.vx += ax;
+  player.vy += ay;
+
+  // Attraction to center (noyau local)
+  const dx = world.cx() - player.x;
+  const dy = world.cy() - player.y;
+  const distCenter = Math.hypot(dx, dy);
+  if(distCenter > world.coreRadius){
+    const nx = dx / distCenter, ny = dy / distCenter;
+    const force = Math.min(world.maxAcceleration, distCenter * 0.0008);
+    player.vx += nx * force;
+    player.vy += ny * force;
+  }
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // Ball inertia varies with distance from center
+  const bdx = ball.x - world.cx();
+  const bdy = ball.y - world.cy();
+  const ballDistCenter = Math.hypot(bdx, bdy);
+  const centerRatio = Math.min(1, ballDistCenter / 120);
+  ball.inertia = 0.92 + centerRatio * 0.07;
+
+  ball.vx *= ball.inertia;
+  ball.vy *= ball.inertia;
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  // Coupling player -> ball
+  const cdx = player.x - ball.x;
+  const cdy = player.y - ball.y;
+  const couplingDist = Math.hypot(cdx, cdy);
+  if(couplingDist > 0){
+    const couplingStrength = Math.min(0.08, couplingDist * 0.0006);
+    ball.vx += cdx * couplingStrength;
+    ball.vy += cdy * couplingStrength;
+  }
+
+  // Wall bounce
+  if(ball.x < ball.radius){ ball.x = ball.radius; ball.vx *= -0.6; }
+  if(ball.x > canvas.width - ball.radius){ ball.x = canvas.width - ball.radius; ball.vx *= -0.6; }
+  if(ball.y < ball.radius){ ball.y = ball.radius; ball.vy *= -0.6; }
+  if(ball.y > canvas.height - ball.radius){ ball.y = canvas.height - ball.radius; ball.vy *= -0.6; }
+
+  if(player.x < player.radius){ player.x = player.radius; player.vx *= -0.5; }
+  if(player.x > canvas.width - player.radius){ player.x = canvas.width - player.radius; player.vx *= -0.5; }
+  if(player.y < player.radius){ player.y = player.radius; player.vy *= -0.5; }
+  if(player.y > canvas.height - player.radius){ player.y = canvas.height - player.radius; player.vy *= -0.5; }
+
+  // Friction
+  player.vx *= 0.96;
+  player.vy *= 0.96;
+
+  return { couplingDist, ballSpeed: Math.hypot(ball.vx, ball.vy) };
+}
+
+let activePortal = null;
+let portalTimer = 0;
+
+function checkPortals(couplingDist, ballSpeed){
+  let newActive = null;
+  for(const p of portals){
+    const d = Math.hypot(ball.x - p.x, ball.y - p.y);
+    if(d < p.r + ball.radius){
+      // Check if coupling is stable enough for this portal
+      const stable = couplingDist < world.maxCouplingDistance && ball.inertia <= p.maxInertia;
+      if(stable){
+        newActive = p;
+        // Only log on change
+        if(activePortal !== p){
+          const ethic = p.align === 'full' ? 'Accord total' : p.align === 'high' ? 'Accord élevé' : p.align === 'medium' ? 'Accord partiel' : 'Accord faible';
+          log(`Portail <b>${p.name}</b> atteint — ${ethic} — ${p.whPer1k} Wh/1k tokens`, p.align === 'full' || p.align === 'high' ? 'ok' : 'warn');
+        }
+      } else if(activePortal !== p && d < p.r + ball.radius + 10){
+        // Near but not stable
+        if(portalTimer++ % 60 === 0){
+          log(`Portail ${p.name} visible mais couplage instable (inertie ${ball.inertia.toFixed(3)} > ${p.maxInertia})`, 'warn');
+        }
+      }
+      break;
+    }
+  }
+  activePortal = newActive;
+  return activePortal;
+}
+
+function drawGame(){
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background grid (subtle)
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--line').trim();
+  ctx.lineWidth = 1;
+  const gridSize = 40;
+  for(let x = 0; x < canvas.width; x += gridSize){
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for(let y = 0; y < canvas.height; y += gridSize){
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  // Center (noyau local)
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(world.cx(), world.cy(), world.coreRadius, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent-weak').trim();
+  ctx.fill();
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent-strong').trim();
+  ctx.font = 'bold 12px "Source Sans 3", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('NOYAU', world.cx(), world.cy() + 4);
+
+  // Portals
+  for(const p of portals){
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + '22';
+    ctx.fill();
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = activePortal === p ? 3 : 1.5;
+    ctx.stroke();
+    // Label
+    ctx.fillStyle = p.color;
+    ctx.font = '600 11px "Source Sans 3", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.name.toUpperCase(), p.x, p.y + 4);
+    ctx.font = '10px "Source Sans 3", sans-serif';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+    ctx.fillText(`${p.whPer1k} Wh/1kt`, p.x, p.y + p.r + 14);
+  }
+
+  // Link player-ball
+  const couplingDist = Math.hypot(player.x - ball.x, player.y - ball.y);
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(ball.x, ball.y);
+  const linkColor = couplingDist < 60 ? '#2D5A3D' : couplingDist < 120 ? '#D4A843' : '#B85C38';
+  ctx.strokeStyle = linkColor;
+  ctx.lineWidth = Math.max(1, 3 - couplingDist / 100);
+  ctx.setLineDash(couplingDist > world.maxCouplingDistance ? [4, 4] : []);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Ball
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fillStyle = linkColor;
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Player
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // HUD on canvas
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+  ctx.font = '11px "Source Sans 3", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(`Couplage: ${Math.round(couplingDist)} px`, 12, 22);
+  ctx.fillText(`Inertie: ${ball.inertia.toFixed(3)}`, 12, 38);
+  if(activePortal){
+    ctx.fillStyle = activePortal.color;
+    ctx.fillText(`Accord: ${activePortal.name}`, 12, 54);
+  }
+}
+
+function gameLoop(){
+  const { couplingDist, ballSpeed } = updateGame();
+  const portal = checkPortals(couplingDist, ballSpeed);
+  drawGame();
+
+  // Update DOM panel
+  document.getElementById('distVal').textContent = Math.round(couplingDist) + ' px';
+  document.getElementById('speedVal').textContent = ballSpeed.toFixed(2);
+  document.getElementById('inertiaVal').textContent = ball.inertia.toFixed(3);
+  document.getElementById('portalVal').textContent = portal ? portal.name : '—';
+  document.getElementById('portalVal').style.color = portal ? portal.color : '';
+  document.getElementById('ethicVal').textContent = portal ? (portal.align === 'full' ? 'Accord total' : portal.align === 'high' ? 'Accord élevé' : portal.align === 'medium' ? 'Accord partiel' : 'Accord faible') : '—';
+  document.getElementById('ethicVal').className = 'val ' + (portal && (portal.align === 'full' || portal.align === 'high') ? 'ok' : portal ? 'warn' : '');
+
+  requestAnimationFrame(gameLoop);
+}
+
+// Reset
+document.getElementById('resetGame').addEventListener('click', () => {
+  player.reset();
+  ball.reset();
+  sessionStart = Date.now();
+  activePortal = null;
+  log('Noyau réinitialisé. Couplage remis à zéro.', 'ok');
+});
+
+// Start
+log('surffinPhi v0.2 — Utilisez les flèches pour guider la bille.', 'ok');
+log('Le centre est le noyau local. Les portails sont les services IA.', 'info');
+gameLoop();
+</script>
+</body>
+</html>

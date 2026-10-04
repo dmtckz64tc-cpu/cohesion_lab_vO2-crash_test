@@ -1,0 +1,11 @@
+Une chose survit au changement lorsqu'une transformation ultérieure peut encore reconnaître qu'elle vient de là.
+
+C'est peut-être une formulation plus serrée de ton intuition :
+
+$$ \boxed{\text{temps} \;\sim\; \text{persistance de parenté à travers transformation}} $$
+
+et
+
+$$ \boxed{\text{interface} \;\sim\; \text{trace transmissible de cette parenté}} $$
+
+Ce qui ferait des contenants, transformants et interfaces non pas trois familles d'objets, mais trois moments d'une même histoire : contenir une différence, la transformer, puis transmettre la trace de ce qui a été transformé.

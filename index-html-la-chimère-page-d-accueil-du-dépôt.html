@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>cohesion_lab_vO2 — la chimère</title>
+<style>
+  :root{
+    --bg:#05070a;
+    --panel:#0b1018;
+    --line:#1c2530;
+    --phos:#6bf5b0;
+    --phos-dim:#2f5c48;
+    --warn:#ff8a5c;
+    --text:#cfe0d8;
+    --dim:#6c8177;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:24px;
+    background:radial-gradient(ellipse at 50% 20%, #0a1018 0%, var(--bg) 70%);
+    font-family:Georgia, "Iowan Old Style", serif;
+    color:var(--text);
+  }
+  header{max-width:880px;margin:0 auto 28px auto;}
+  h1{
+    font-size:26px;margin:0 0 4px 0;color:var(--phos);
+    text-shadow:0 0 12px rgba(107,245,176,.3);
+  }
+  .sous{font-size:14px;color:var(--dim);font-style:italic;margin:0;}
+  .fil{font-family:"Courier New",monospace;font-size:11px;color:var(--phos-dim);margin-top:10px;}
+  main{max-width:880px;margin:0 auto;}
+  .organe{margin-bottom:34px;}
+  .organe h2{
+    font-size:17px;color:var(--phos);
+    border-bottom:1px solid var(--line);
+    padding-bottom:6px;margin:0 0 14px 0;
+  }
+  .organe h2 small{color:var(--dim);font-weight:normal;font-size:12px;}
+  .brique{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--phos-dim);
+    border-radius:8px;
+    padding:12px 16px;
+    margin-bottom:12px;
+  }
+  .brique .nom{
+    font-family:"Courier New",monospace;
+    font-size:13px;color:var(--warn);
+  }
+  .brique .ctx{font-size:14px;margin:6px 0;line-height:1.55;}
+  .brique .ou{font-size:12.5px;color:var(--dim);line-height:1.5;}
+  .brique .ou b{color:var(--text);font-weight:normal;}
+  .brique .run{
+    font-family:"Courier New",monospace;
+    font-size:11.5px;color:var(--phos);
+    background:#070b10;border:1px solid var(--line);
+    border-radius:4px;padding:4px 8px;margin-top:6px;
+    white-space:pre-wrap;
+  }
+  .chantier{
+    border:1px dashed var(--warn);
+    border-radius:8px;
+    padding:14px 18px;
+    font-size:13.5px;color:var(--dim);
+    line-height:1.6;
+  }
+  .chantier b{color:var(--warn);font-weight:normal;}
+  footer{
+    max-width:880px;margin:34px auto 0 auto;
+    font-size:11px;color:var(--phos-dim);
+    border-top:1px solid var(--line);
+    padding-top:10px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>cohesion_lab_vO2 — la chimère</h1>
+  <p class="sous">Un corps, quatre entrées. Chaque brique porte ici son bloc de contexte : où elle se situe dans l'ensemble, ce qu'elle fait, comment la faire vivre.</p>
+  <p class="fil">index tissé à la main — retoucher sans crainte, c'est le chantier</p>
+</header>
+
+<main>
+
+  <section class="organe">
+    <h2>Tête mathématique <small>— l'entrée « au repos » : Langevin, Takens, zêta</small></h2>
+    <div class="brique">
+      <div class="nom">surphin_takens_diagnostic.py</div>
+      <p class="ctx">Diagnostic topologico-computationnel du plongement de Takens : calcule les rapports de densité (alpha_obs, alpha_monde, kappa, rho) et estime la RAM nécessaire avant de lancer le vrai calcul.</p>
+      <p class="ou"><b>Où dans l'ensemble :</b> garde-fou de l'entrée mathématique — il dit si une configuration (d, tau, n) tient dans la machine avant qu'elle ne s'effondre.</p>
+      <div class="run">python surphin_takens_diagnostic.py --find-sweet-spot --max-ram-gb 8</div>
+    </div>
+    <div class="brique">
+      <div class="nom">Atlas_CLD-tests_attention_H0_30092026-encours.py</div>
+      <p class="ctx">Quatre tests d'attention pour le couplage H0 : shuffle (ordre temporel vs loi marginale), unfolding (tendance de densité des zéros de zêta), tau physique (signal de Langevin), normalisation (stabilité selon la graine).</p>
+      <p class="ou"><b>Où dans l'ensemble :</b> en cours — dépend de deux fichiers non publiés (surphin_couplage_viz_vO3c.py, langevin_bridge.py), encore au chaud dans les sources.</p>
+      <div class="run">python tests_attention_H0.py --test all</div>
+    </div>
+  </section>
+
+  <section class="organe">
+    <h2>Colonne RAGlagChain <small>— l'entrée agent_local ↔ cloud</small></h2>
+    <div class="brique">
+      <div class="nom">orchestrator_v008.py</div>
+      <p class="ctx">Orchestrateur FastAPI qui bascule entre trois backends : Jan local (PC portable), Ollama-home (PC fixe RTX), Mistral cloud — relié à Supabase. C'est le prototype même du agent_local ↔ cloud : une même requête, trois échelles de couplage possibles.</p>
+      <p class="ou"><b>Où dans l'ensemble :</b> le nœud du projet RAGlagChain ; la clé publishable Supabase y est publique par conception, les secrets restent dans .env (jamais poussé).</p>
+    </div>
+  </section>
+
+  <section class="organe">
+    <h2>Corps SurphinPhi.game <small>— l'entrée du changement d'échelle visible</small></h2>
+    <div class="brique">
+      <div class="nom">Surphinphy.html</div>
+      <p class="ctx">surPhiN'Phi — « repère co-tournant » : la bille, le centre, et l'œil qui apprend à reprendre le contrôle.</p>
+      <p class="ou"><b>Où dans l'ensemble :</b> première version rendue publique du jeu ; la question n'y est pas de gagner mais de voir le couplage changer d'échelle.</p>
+      <div class="run">ouvrir directement dans le navigateur — aucune dépendance</div>
+    </div>
+    <div class="brique">
+      <div class="nom">Surphinphy_CLD002.html</div>
+      <p class="ctx">surPhiN'Phi — « cohérence & rémanence » : itération suivante du corps du jeu.</p>
+      <p class="ou"><b>Où dans l'ensemble :</b> version 002 de la lignée CLD — à côté de sa sœur aînée pour que la différence entre les deux reste visible.</p>
+      <div class="run">ouvrir directement dans le navigateur — aucune dépendance</div>
+    </div>
+  </section>
+
+  <section class="organe">
+    <h2>Ailes philo · méso · Mi <small>— l'entrée « de l'univers se regarder »</small></h2>
+    <div class="brique">
+      <div class="nom">kinship_references_structured.md</div>
+      <p class="ctx">Références académiques et philosophiques organisées en arbre — généalogie et ontologie géométrique (Thalès → Euclide), IEEE 754, et leurs liens avec la parentèle homo_primatus | techAI-homo-spaceshipii.</p>
+      <p class="ou"><b>Où dans l'ensemble :</b> le seul fichier qui pratique déjà la méthode à la main — chaque référence porte son « lien avec le tout ». Le beige de tissage y est artisanal.</p>
+    </div>
+    <div class="brique">
+      <div class="nom">IEEE754_Mi-explore_paysage-3d-des-allocations-flottantes_Mi-003.html</div>
+      <p class="ctx">Paysage 3D interactif des allocations de bits flottants : voir où et comment la mantisse distribue la précision.</p>
+      <p class="ou"><b>Où dans l'ensemble :</b> exploration « Mi » — le regard qui se promène dans la matière même des nombres, là où le continu et le discontinu se négocient.</p>
+      <div class="run">ouvrir directement dans le navigateur — aucune dépendance</div>
+    </div>
+  </section>
+
+  <section class="organe">
+    <h2>Chantier <small>— ce qui n'est pas encore ici</small></h2>
+    <div class="chantier">
+      <b>Le brut reste au sol.</b> Textes, images et références non triés vivent dans <b>sources/</b>, ignoré par git et invisible sur la toile.
+      Le triage se fait en local avec le LLM maison ; seuls les fragments autonomes — taillés, contextualisés — s'envolent vers ce dépôt.
+      L'œuvre n'est jamais prête ; le nid, lui, s'agrandit brique par brique.
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  cohesion_lab_vO2-crash_test · contenu sous CC BY-SA 4.0 — « envole-toi, mais reviens te mélanger »
+</footer>
+</body>
+</html>

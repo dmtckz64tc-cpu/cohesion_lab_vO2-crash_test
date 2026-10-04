@@ -1,0 +1,9 @@
+ Le fichier `orchestrator_v005.py` est un script Python qui crée une application FastAPI pour orchestrer des requêtes de génération de texte à l'aide de différents modèles de langage de génération de texte (LLM).
+
+Il utilise la bibliothèque `langchain_openai` pour interagir avec différents modèles de langage de génération de texte, tels que Mistral et Ollama. Il utilise également la bibliothèque `supabase` pour enregistrer des logs de chaque requête et réponse dans une base de données Supabase.
+
+L'application FastAPI fournit une interface pour les requêtes de génération de texte en utilisant le protocole OpenAI. Elle prend en charge les requêtes de liste des modèles et de génération de texte en utilisant le protocole OpenAI.
+
+Il est également possible de configurer différents backends pour utiliser différents modèles de langage de génération de texte. Le backend par défaut peut être changé en modifiant la variable `CURRENT_BACKEND`.
+
+Le script peut être lancé en utilisant la commande `python orchestrator_v005.py` dans un terminal.
