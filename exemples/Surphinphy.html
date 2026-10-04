@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>surPhiN'Phi — repère co-tournant</title>
+<style>
+  :root{
+    --bg: #05070a;
+    --line: #1c2530;
+    --phos: #6bf5b0;
+    --phos-dim: #2f5c48;
+    --warn: #ff8a5c;
+    --hot: #ff5c5c;
+    --text: #cfe0d8;
+    --text-dim: #6c8177;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background: radial-gradient(ellipse at 50% 40%, #0a1018 0%, var(--bg) 70%);
+    font-family: Georgia, "Iowan Old Style", serif;
+    color: var(--text);
+  }
+  #game{ position:absolute; inset:0; display:block; width:100%; height:100%; }
+
+  #hud{
+    position:absolute; top:14px; left:14px;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    color: var(--phos);
+    line-height: 1.7;
+    pointer-events:none;
+    text-shadow: 0 0 6px rgba(107,245,176,0.35);
+  }
+  #hud .dim{ color: var(--text-dim); }
+  #hud b{ font-weight:normal; }
+  #hud .lock{ color: var(--hot); text-shadow: 0 0 8px rgba(255,92,92,0.6); }
+  #hud .near{ color: var(--warn); text-shadow: 0 0 8px rgba(255,138,92,0.5); }
+
+  #panel{
+    position:absolute; top:0; right:0; height:100%;
+    width: 310px;
+    background: linear-gradient(180deg, rgba(11,15,22,0.92), rgba(11,15,22,0.97));
+    border-left: 1px solid var(--line);
+    padding: 22px 20px 20px;
+    overflow-y:auto;
+    transition: transform 0.35s ease;
+  }
+  #panel.collapsed{ transform: translateX(100%); }
+
+  #panelToggle{
+    position:absolute; top:14px; right:14px; z-index:5;
+    background: #0b0f16; color: var(--phos);
+    border:1px solid var(--line); border-radius:3px;
+    font-family: "Courier New", monospace; font-size:11px;
+    padding: 6px 10px; cursor:pointer; letter-spacing:0.5px;
+  }
+  #panelToggle:hover{ border-color: var(--phos-dim); }
+
+  h1{ font-size: 15px; font-weight:400; letter-spacing:0.5px; margin: 0 0 2px; color:#eef3ef; }
+  .sub{ font-size:11px; color:var(--text-dim); margin:0 0 20px; font-family:"Courier New", monospace; }
+
+  .group{ margin-bottom: 18px; }
+  .group h2{
+    font-size:10px; text-transform:uppercase; letter-spacing:1.5px;
+    color: var(--text-dim); font-weight:400; margin:0 0 8px;
+    font-family:"Courier New", monospace;
+    border-bottom:1px solid var(--line); padding-bottom:6px;
+  }
+
+  .row{ margin-bottom:12px; }
+  .row label{ display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px; color:var(--text); }
+  .row label span.val{ color:var(--phos); font-family:"Courier New", monospace; }
+  input[type=range]{ width:100%; height:3px; -webkit-appearance:none; background: var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:11px; height:11px; border-radius:50%;
+    background: var(--phos); cursor:pointer; box-shadow: 0 0 6px rgba(107,245,176,0.6);
+  }
+  input[type=range]::-moz-range-thumb{ width:11px; height:11px; border-radius:50%; border:none; background: var(--phos); cursor:pointer; }
+
+  .toggleRow{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px; margin-bottom:10px; }
+  .toggleRow input[type=checkbox]{ width:16px; height:16px; accent-color: var(--phos); }
+
+  .presets{ display:flex; flex-direction:column; gap:8px; }
+  button.preset{
+    background: #0b0f16; color: var(--text);
+    border:1px solid var(--line); border-radius:3px;
+    padding:9px 10px; text-align:left; cursor:pointer;
+    font-family: Georgia, serif; font-size:12.5px;
+  }
+  button.preset:hover{ border-color: var(--phos-dim); color:#eef3ef; }
+  button.preset .k{ display:block; font-family:"Courier New", monospace; font-size:10px; color:var(--phos); margin-bottom:2px; }
+
+  #note{ margin-top:20px; font-size:11.5px; line-height:1.5; color:var(--text-dim); border-top:1px solid var(--line); padding-top:14px; }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+<button id="panelToggle">réglages</button>
+
+<div id="hud">
+  ratio pics/tour : <b id="hRatio">–</b> · résonance la plus proche : <b id="hNearest">–</b><br>
+  écart à la résonance : <b id="hDelta">–</b><br>
+  vitesse de précession (repère co-tournant) : <b id="hPrec">–</b><br>
+  <span class="dim">flèches = pousser · panneau = réglages</span>
+</div>
+
+<div id="panel">
+  <h1>surPhiN'Phi</h1>
+  <p class="sub">repère co-tournant — détecteur universel de résonance</p>
+
+  <div class="group">
+    <h2>Conditions de départ</h2>
+    <div class="presets">
+      <button class="preset" data-preset="triangle"><span class="k">essai triangle</span>départ proche du cœur, faible vitesse tangentielle</button>
+      <button class="preset" data-preset="loin"><span class="k">orbite lointaine</span>départ éloigné, vitesse tangentielle plus franche</button>
+      <button class="preset" data-preset="original"><span class="k">config d'origine</span>conditions du fichier game.js de départ</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Repère de rendu</h2>
+    <div class="toggleRow">
+      <label for="coRotating">caméra co-tournante</label>
+      <input type="checkbox" id="coRotating" checked>
+    </div>
+    <div class="toggleRow">
+      <label for="showTrail">traînée de la bille</label>
+      <input type="checkbox" id="showTrail" checked>
+    </div>
+    <div class="toggleRow">
+      <label for="showHalo">halo de résonance</label>
+      <input type="checkbox" id="showHalo" checked>
+    </div>
+  </div>
+
+  <div class="group">
+    <h2>Monde</h2>
+    <div class="row"><label>rayon du cœur <span class="val" id="v_coreRadius"></span></label><input type="range" id="coreRadius" min="20" max="140" step="1"></div>
+    <div class="row"><label>accélération centrale max <span class="val" id="v_maxAcceleration"></span></label><input type="range" id="maxAcceleration" min="0.04" max="0.4" step="0.005"></div>
+  </div>
+
+  <div class="group">
+    <h2>Joueur</h2>
+    <div class="row"><label>poussée (flèches) <span class="val" id="v_thrust"></span></label><input type="range" id="thrust" min="0.1" max="0.9" step="0.01"></div>
+  </div>
+
+  <div class="group">
+    <h2>Bille d'inertie</h2>
+    <div class="row"><label>inertie près du cœur <span class="val" id="v_inertiaMin"></span></label><input type="range" id="inertiaMin" min="0.6" max="0.99" step="0.005"></div>
+    <div class="row"><label>inertie loin du cœur <span class="val" id="v_inertiaMax"></span></label><input type="range" id="inertiaMax" min="0.96" max="0.999" step="0.001"></div>
+    <div class="row"><label>raideur du couplage <span class="val" id="v_couplingCap"></span></label><input type="range" id="couplingCap" min="0.02" max="0.22" step="0.005"></div>
+  </div>
+
+  <div id="note">
+    En repère co-tournant, la caméra retire la vitesse angulaire <i>moyenne</i> (lissée) de la bille
+    autour du cœur — pas sa vitesse instantanée. Le motif à n sommets (2, 3, 6…) apparaît alors
+    quasi immobile quand il est verrouillé sur une résonance entière, et se met à tourner lentement
+    dès qu'il en dérive : la vitesse de cette rotation résiduelle mesure directement l'écart à la
+    résonance, quel que soit n — même halo, même lecture, pour n'importe quel motif.
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resize();
+window.addEventListener("resize", resize);
+
+const params = {
+  coreRadius: 45, maxAcceleration: 0.12, thrust: 0.35,
+  inertiaMin: 0.92, inertiaMax: 0.995, couplingCap: 0.08
+};
+const sliderIds = Object.keys(params);
+function syncSlidersFromParams(){
+  sliderIds.forEach(id=>{
+    const el = document.getElementById(id);
+    el.value = params[id];
+    document.getElementById("v_"+id).textContent = params[id].toFixed(id==="coreRadius"?0:3);
+  });
+}
+sliderIds.forEach(id=>{
+  document.getElementById(id).addEventListener("input", e=>{
+    params[id] = parseFloat(e.target.value);
+    document.getElementById("v_"+id).textContent = params[id].toFixed(id==="coreRadius"?0:3);
+  });
+});
+
+let coRotating = true, showTrail = true, showHalo = true;
+document.getElementById("coRotating").addEventListener("change", e=> coRotating = e.target.checked);
+document.getElementById("showTrail").addEventListener("change", e=> showTrail = e.target.checked);
+document.getElementById("showHalo").addEventListener("change", e=> showHalo = e.target.checked);
+
+const world = { cx:0, cy:0 };
+let player, ball, camera, trail;
+
+function applyPreset(name){
+  world.cx = canvas.width/2; world.cy = canvas.height/2;
+  if (name === "original"){
+    player = { x: world.cx+220, y: world.cy, vx:0, vy:0, radius:10 };
+    ball   = { x: player.x+60,  y: player.y, vx:0, vy:0, radius:14 };
+  } else if (name === "triangle"){
+    const vt = 0.3;
+    player = { x: world.cx+90, y: world.cy, vx:0, vy:vt, radius:10 };
+    ball   = { x: player.x+35, y: player.y, vx:0, vy:vt, radius:14 };
+  } else if (name === "loin"){
+    const vt = 1.6;
+    player = { x: world.cx+220, y: world.cy, vx:0, vy:vt, radius:10 };
+    ball   = { x: player.x+50,  y: player.y, vx:0, vy:vt, radius:14 };
+  }
+  camera = { angle:0, zoom:1, minZoom:0.05, maxZoom:12 };
+  trail = [];
+  telemetry.reset();
+  precession.reset();
+}
+
+const keys = {};
+window.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if (["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) e.preventDefault();
+});
+window.addEventListener("keyup", e => { keys[e.key] = false; });
+
+// ratio pics/tour (fenêtre glissante) — inchangé
+const telemetry = {
+  buffer: [], maxLen: 400,
+  reset(){ this.buffer = []; },
+  push(radius, angle){ this.buffer.push({radius, angle}); if (this.buffer.length > this.maxLen) this.buffer.shift(); },
+  ratio(){
+    const buf = this.buffer;
+    if (buf.length < 40) return null;
+    let peaks = 0;
+    for (let i=1;i<buf.length-1;i++) if (buf[i].radius > buf[i-1].radius && buf[i].radius > buf[i+1].radius) peaks++;
+    let totalAngle = 0;
+    for (let i=1;i<buf.length;i++){
+      let d = buf[i].angle - buf[i-1].angle;
+      while (d > Math.PI) d -= Math.PI*2;
+      while (d < -Math.PI) d += Math.PI*2;
+      totalAngle += d;
+    }
+    const revs = Math.abs(totalAngle) / (Math.PI*2);
+    if (revs < 0.05) return null;
+    return peaks / revs;
+  }
+};
+
+// vitesse angulaire moyenne lissée (pour le repère co-tournant) + vitesse de précession affichée
+const precession = {
+  smOmega: 0, lastTheta: null, alpha: 0.985,
+  reset(){ this.smOmega = 0; this.lastTheta = null; },
+  update(theta){
+    if (this.lastTheta !== null){
+      let d = theta - this.lastTheta;
+      while (d > Math.PI) d -= Math.PI*2;
+      while (d < -Math.PI) d += Math.PI*2;
+      this.smOmega = this.smOmega*this.alpha + d*(1-this.alpha);
+    }
+    this.lastTheta = theta;
+    return this.smOmega;
+  }
+};
+
+function update(){
+  let ax = 0, ay = 0;
+  if (keys["ArrowLeft"])  ax -= params.thrust;
+  if (keys["ArrowRight"]) ax += params.thrust;
+  if (keys["ArrowUp"])    ay -= params.thrust;
+  if (keys["ArrowDown"])  ay += params.thrust;
+  player.vx += ax; player.vy += ay;
+
+  const dx = world.cx - player.x, dy = world.cy - player.y;
+  const distance = Math.hypot(dx,dy);
+  if (distance > params.coreRadius){
+    const nx = dx/distance, ny = dy/distance;
+    const force = Math.min(params.maxAcceleration, distance*0.0008);
+    player.vx += nx*force; player.vy += ny*force;
+  }
+  player.x += player.vx; player.y += player.vy;
+
+  const centerDistance = Math.hypot(ball.x-world.cx, ball.y-world.cy);
+  const centerRatio = Math.min(1, centerDistance/1000);
+  ball.inertia = params.inertiaMin + centerRatio*(params.inertiaMax-params.inertiaMin);
+  ball.vx *= ball.inertia; ball.vy *= ball.inertia;
+  ball.x += ball.vx; ball.y += ball.vy;
+
+  const bx = player.x-ball.x, by = player.y-ball.y;
+  const couplingDistance = Math.hypot(bx,by);
+  if (couplingDistance > 0){
+    const couplingStrength = Math.min(params.couplingCap, couplingDistance*0.0005);
+    ball.vx += bx*couplingStrength; ball.vy += by*couplingStrength;
+  }
+
+  const ballTheta = Math.atan2(ball.y-world.cy, ball.x-world.cx);
+  const ballR = Math.hypot(ball.x-world.cx, ball.y-world.cy);
+  telemetry.push(ballR, ballTheta);
+  const smOmega = precession.update(ballTheta);
+
+  if (coRotating) camera.angle -= smOmega;
+
+  trail.push({x:ball.x, y:ball.y});
+  if (trail.length > 260) trail.shift();
+
+  // zoom : s'adapte au rayon max récent pour garder la scène cadrée
+  let maxR = params.coreRadius;
+  for (const p of trail){ const r = Math.hypot(p.x-world.cx,p.y-world.cy); if (r>maxR) maxR=r; }
+  const targetZoom = 0.80 * Math.min(canvas.width,canvas.height) / (2*(maxR+30));
+  camera.zoom += (Math.max(camera.minZoom,Math.min(camera.maxZoom,targetZoom)) - camera.zoom) * 0.03;
+}
+
+function resonanceInfo(){
+  const r = telemetry.ratio();
+  if (r === null) return null;
+  const nearest = Math.max(1, Math.round(r));
+  const delta = Math.abs(r-nearest);
+  const closeness = Math.max(0, 1 - delta/0.5); // 1 = verrouillé, 0 = loin
+  return { r, nearest, delta, closeness };
+}
+function closenessColor(closeness){
+  // vert (verrouillé) -> orange -> rouge (loin)
+  const hue = 120 - 100*(1-closeness); // 120=vert, 20≈orange/rouge
+  return `hsl(${hue}, 85%, ${45+15*closeness}%)`;
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const info = resonanceInfo();
+  const closeness = info ? info.closeness : 0;
+  const color = closenessColor(closeness);
+
+  ctx.save();
+  ctx.translate(canvas.width/2, canvas.height/2);
+  ctx.scale(camera.zoom, camera.zoom);
+  if (coRotating){
+    ctx.rotate(camera.angle);
+    ctx.translate(-world.cx, -world.cy);
+  } else {
+    // repère classique : centré sur la bille, sans rotation
+    ctx.translate(-ball.x, -ball.y);
+  }
+
+  // cœur
+  ctx.strokeStyle = "#2f5c48";
+  ctx.lineWidth = 1.5/camera.zoom;
+  ctx.beginPath();
+  ctx.arc(world.cx, world.cy, params.coreRadius, 0, Math.PI*2);
+  ctx.stroke();
+
+  // traînée
+  if (showTrail && trail.length > 1){
+    for (let i=1;i<trail.length;i++){
+      const age = i/trail.length; // 0 vieux -> 1 récent
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.05 + 0.5*age;
+      ctx.lineWidth = 1.5/camera.zoom;
+      ctx.beginPath();
+      ctx.moveTo(trail[i-1].x, trail[i-1].y);
+      ctx.lineTo(trail[i].x, trail[i].y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // lien joueur-bille
+  ctx.strokeStyle = "rgba(107,245,176,0.30)";
+  ctx.lineWidth = (1 + 2*closeness)/camera.zoom;
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y);
+  ctx.lineTo(ball.x, ball.y);
+  ctx.stroke();
+
+  // halo de résonance
+  if (showHalo && info){
+    const haloR = (ball.radius*2.5 + ball.radius*7*closeness);
+    const grad = ctx.createRadialGradient(ball.x,ball.y,0, ball.x,ball.y,haloR);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.globalAlpha = 0.15 + 0.55*closeness;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, haloR, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // bille
+  ctx.fillStyle = "#6bf5b0";
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+  ctx.fill();
+
+  // joueur
+  ctx.fillStyle = "#eef3ef";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+const hRatio = document.getElementById("hRatio");
+const hNearest = document.getElementById("hNearest");
+const hDelta = document.getElementById("hDelta");
+const hPrec = document.getElementById("hPrec");
+
+function updateHud(){
+  const info = resonanceInfo();
+  if (!info){
+    hRatio.textContent = "–"; hNearest.textContent = "–"; hDelta.textContent = "–";
+    hRatio.className=""; hDelta.className="";
+  } else {
+    hRatio.textContent = info.r.toFixed(2);
+    hNearest.textContent = info.nearest;
+    hDelta.textContent = info.delta.toFixed(3);
+    const cls = info.delta < 0.03 ? "lock" : (info.delta < 0.15 ? "near" : "");
+    hRatio.className = cls; hDelta.className = cls;
+  }
+  hPrec.textContent = (precession.smOmega*60).toFixed(4) + " rad/s (éch. écran)";
+}
+
+function loop(){
+  update(); draw(); updateHud();
+  requestAnimationFrame(loop);
+}
+
+document.getElementById("panelToggle").addEventListener("click", ()=>{
+  document.getElementById("panel").classList.toggle("collapsed");
+});
+document.querySelectorAll("button.preset").forEach(btn=>{
+  btn.addEventListener("click", ()=> applyPreset(btn.dataset.preset));
+});
+
+syncSlidersFromParams();
+applyPreset("triangle");
+loop();
+</script>
+</body>
+</html>
