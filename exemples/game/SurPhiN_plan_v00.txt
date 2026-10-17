@@ -1,0 +1,22 @@
+## surPhing_dialog v0.0
+## a game about enjoying phi on a terminal interface as a proof of concept = necessity[suspension.pending]
+
+## v0.0 architecture_TT du 22082026
+
+# files on repo:
+
+index.html
+game.js
+style.css
+
+
+# v0.0 game.js
+
+WORLD
+ ├─ landscape()
+ ├─ playerA
+ ├─ playerB
+ ├─ coupling()
+ ├─ physics()
+ └─ draw()
+
