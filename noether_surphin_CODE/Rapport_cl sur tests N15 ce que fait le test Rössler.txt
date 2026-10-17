@@ -1,0 +1,94 @@
+Rapport : ce que le test Rössler (famille J) apprend sur Noether-SurPhiN
+Tests N15b à N15e · run 04bc · 16 octobre 2026
+1. L'essentiel en quatre phrases
+Le test J sert de cas à vérité terrain : deux oscillateurs de Rössler couplés, dont on connaît la synchronisation. Les mesures de covariance (pr, Cx) suivent cette synchronisation, comme attendu. Les indicateurs topologiques gini et e2m2 présentent un saut net vers ε ≈ 0,078, mais ce saut ne vient pas de la dépendance entre les deux oscillateurs : il existe déjà dans chaque oscillateur pris seul, et un nul qui détruit la dépendance le reproduit. Conclusion : à ce seuil, gini et e2m2 ne détectent pas la synchronisation, ils lisent la forme propre de chaque signal, modifiée par le couplage.
+2. Le dispositif, en langage simple
+On couple deux signaux chaotiques (les oscillateurs 1 et 2) et on augmente la force de couplage ε de 0 à 0,3. Pour chaque ε, on a 35 répétitions (les graines). Chaque répétition donne un nuage de points à 6 dimensions (3 par oscillateur). « bi » veut dire que le couplage agit dans les deux sens.
+Cinq lectures sont comparées :
+• R : le verrouillage de phase vrai (mesure de Hilbert). C'est la vérité terrain.
+• Cx : la corrélation entre les deux signaux.
+• pr : le rapport de participation, qui dit à quel point les deux canaux sont redondants.
+• gini et e2m2 : la forme de la distribution des distances entre points voisins du nuage (la topologie H0).
+La question : les indicateurs topologiques suivent-ils la synchronisation, et avec quel retard ?
+3. Les quatre tests
+• N15b : on décale les courbes en ε pour voir si gini et e2m2 sont une copie retardée de R. Réponse : non concluant, car des courbes lisses aléatoires obtiennent des scores semblables.
+• N15c : on repère, pour chaque courbe, l'ε de plus forte variation. Réponse : un ordre apparaît : R (0,030), puis Cx et pr (0,055 à 0,060), puis gini et e2m2 (0,0775).
+• N15d (« J2 ») : on casse la dépendance entre les deux canaux en décalant le temps de l'un d'eux, puis on recompte gini et e2m2. Réponse : le saut est toujours là.
+• N15e : on mesure gini et e2m2 sur chaque oscillateur seul. Réponse : le saut est déjà là, à la même position.
+4. Résultats et lecture
+Points triviaux (attendus ou purement méthodologiques)
+• [TRIVIAL] Le nul fonctionne. Au couplage maximal, il ramène la corrélation de 0,98 à 0,16, le rapport de participation à environ 2 (valeur sans couplage) et R de 0,99 à 0,50. C'est le contrôle de validité du test J2, et il est réussi.
+• [TRIVIAL] pr et Cx donnent r = −1,00 entre eux : ils viennent du même nuage, ce n'est pas une découverte. Ils comptent comme un seul témoin.
+• [TRIVIAL] Une corrélation de 0,93 entre R décalée et gini n'a rien de remarquable : des courbes lisses aléatoires l'atteignent (p = 0,13).
+• [TRIVIAL] En unidirectionnel, aucun résultat stable : gini et e2m2 n'ont pas de position localisable. Pas de conclusion à en tirer.
+• [TRIVIAL] Le couplage modifie chaque oscillateur : c'est physiquement normal, et c'est ce que montre le résultat 4.4 ci-dessous.
+Nouveautés et points d'intérêt
+[NOUVEAUTÉ 1] Un ordre des seuils. Sur la grille actuelle : la phase (R, ε ≈ 0,030) se déclenche avant la covariance (Cx et pr, ≈ 0,055 à 0,060), qui se déclenche avant la topologie H0 (gini et e2m2, ≈ 0,0775). La probabilité que l'ordre soit respecté va de 0,89 à 0,99 selon la chaîne testée. Réserve : la position H0 est connue à ±0,009 seulement (un seul intervalle de grille, entre 0,07 et 0,0877).
+[NOUVEAUTÉ 2, principale] Le saut H0 ne vient pas de la dépendance entre canaux. Le nul qui détruit la dépendance reproduit le saut :
+
+saut relatif réel (6D)
+saut relatif du nul
+gini
++0,137
++0,136
+e2m2
++0,046
++0,036
+Avec la mesure de J2 en valeur absolue, la part du saut attribuable à la dépendance est de −0,35 pour gini (intervalle [−0,59 ; −0,09]) et de −0,06 pour e2m2 ([−0,19 ; +0,12]). Autrement dit : à peu près zéro.
+[NOUVEAUTÉ 3] Le saut est déjà dans chaque oscillateur seul, à la même position (0,0775).
+
+6D réel
+canal 1
+canal 2
+rapport canal/6D
+gini
++0,137
++0,082
++0,109
+0,60 et 0,80
+e2m2
++0,046
++0,051
++0,068
+1,10 et 1,46
+Les intervalles de confiance excluent 0 dans tous les cas. Le canal 2 saute plus que le canal 1 pour les deux indicateurs : le désaccord entre les deux oscillateurs rend le système asymétrique.
+[NOUVEAUTÉ 4] Ce que mesurent gini et e2m2. À ce seuil, ils ne détectent pas la synchronisation. Ils lisent un changement de la forme propre de chaque signal, causé par le couplage, mais pas spécifique à la liaison entre les deux canaux. Cela explique pourquoi l'hypothèse H4 (gini suit R) est non soutenue : on comparait deux grandeurs de nature différente.
+[NOUVEAUTÉ 5, à tester] Une conséquence possible pour la famille F. Le mélange linéaire s1 + g·s2 modifie lui aussi chaque canal. Les excès observés dans F (H1 et H2) devraient donc être comparés au nul « paires désappariées », déjà prévu dans N12. C'est une inférence, pas un résultat : à vérifier en relisant N12.
+5. Limites
+• Les fenêtres du saut ont été choisies après avoir vu N15c : l'analyse est exploratoire.
+• Le nul n'est pas parfait vers ε = 0,07 (R du nul y vaut encore 0,744).
+• Un seul bruit (T = 0,10), une seule dimension de plongement (m = 3), une seule taille de nuage (N = 300), et surtout le sens bidirectionnel.
+• « Effet de marginales » ne veut pas dire « sans rapport avec le couplage » : le couplage change bien chaque oscillateur. On ne sait pas encore ce qui change (fréquence, amplitude, régime chaotique ou périodique, artefact du plongement).
+6. Ce que cela change pour Noether-SurPhiN
+1. gini et e2m2 ne doivent pas être présentés comme des détecteurs de synchronisation à partir de ce test.
+2. Le Rössler ne fournit pas de contrôle positif de dépendance entre canaux pour gini et e2m2. Il en fournit un pour pr, Cx et R. Un contrôle positif pour les indicateurs H0 reste à trouver, ce qui rejoint le verdict « vide » de H6.
+3. Le nul « paires désappariées » doit devenir la référence standard, pour J comme pour F.
+4. La question ouverte la plus utile est maintenant : qu'est-ce qui change dans chaque oscillateur vers ε ≈ 0,078 ?
+7. Bilan
+Étiquette
+Énoncé
+Solidité
+Trivial
+Le nul détruit la dépendance (contrôle réussi)
+Établi
+Trivial
+pr et Cx sont un seul témoin
+Établi
+Trivial
+r = 0,93 non remarquable ; uni sans résultat
+Établi
+Nouveauté 1
+Ordre R < Cx, pr < gini, e2m2
+Probable, résolution ±0,009
+Nouveauté 2
+Le saut H0 ne vient pas de la dépendance
+Solide pour e2m2 et gini sur ces données
+Nouveauté 3
+Le saut est dans chaque canal seul
+Solide, mêmes fenêtres exploratoires
+Nouveauté 4
+gini et e2m2 lisent la forme propre des signaux
+Interprétation cohérente, cause non identifiée
+Nouveauté 5
+Le nul « paires » doit servir de référence pour F
+À tester
